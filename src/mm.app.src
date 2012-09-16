@@ -1,0 +1,8 @@
+{application, mm,
+ [{description, "massema.net"},
+  {vsn, "0.1"},
+  {modules,[mm]},
+  {registered, []},
+  {applications, [kernel,stdlib,inets]},
+  {env, []}
+ ]}.
