@@ -15,6 +15,25 @@ start() ->
   inets:start(),
   inets:start(httpd,conf()).
 
+conf() ->
+  Root = filename:dirname(filename:dirname(code:which(?MODULE))),
+  [{port, 8080},
+   {server_name,atom_to_list(?MODULE)},
+   {server_root,ensure(filename:join([Root,server]))},
+   {document_root,ensure(filename:join([Root,static]))},
+   {modules, [mod_alias,mod_esi,mod_get,mod_log]},
+   {directory_index, ["index.html"]},
+   {error_log,filename:join([Root,server,"errors.log"])},
+   {erl_script_alias, {"/erl", [?MODULE]}},
+   {erl_script_nocache,true},
+   {mime_types,[{"html","text/html"},
+                {"css","text/css"},
+                {"js","application/javascript"}]}].
+
+ensure(X) ->
+  filelib:ensure_dir(X++"/"),
+  X.
+
 %% called when the server sees /<module>/do[/?]*
 %% we can deliver the content in chunks, as long as do/3 does not return
 do(SessionID,Env,Input) ->
@@ -34,22 +53,3 @@ do(SessionID,Env,Input) ->
 
 flat(X) ->
   lists:flatten(io_lib:fwrite("~p",[X])).
-
-conf() ->
-  Root = filename:dirname(filename:dirname(code:which(?MODULE))),
-  [{port, 8080},
-   {server_name,atom_to_list(?MODULE)},
-   {server_root,ensure(filename:join([Root,server]))},
-   {document_root,ensure(filename:join([Root,static]))},
-   {modules, [mod_alias,mod_esi,mod_get,mod_log]},
-   {directory_index, ["index.html"]},
-   {error_log,ensure(filename:join([Root,server,"errors.log"]))},
-   {erl_script_alias, {"/erl", [?MODULE]}},
-   {erl_script_nocache,true},
-   {mime_types,[{"html","text/html"},
-                {"css","text/css"},
-                {"js","application/javascript"}]}].
-
-ensure(X) ->
-  filelib:ensure_dir(X++"/"),
-  X.
