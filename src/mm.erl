@@ -15,24 +15,24 @@ start() ->
   inets:start(),
   inets:start(httpd,conf()).
 
+%% we rely on the convention that the error log lives in ".../<app>/<logfile>"
+%% and static pages lives in priv_dir/static
 conf() ->
-  Root = filename:dirname(filename:dirname(code:which(?MODULE))),
+  {ok,{file,ErrorLog}} = application:get_env(kernel,error_logger),
+  LogDir = filename:dirname(ErrorLog),
+  Root = code:lib_dir(filename:basename(LogDir)),
   [{port, 8080},
    {server_name,atom_to_list(?MODULE)},
-   {server_root,ensure(filename:join([Root,priv,server]))},
-   {document_root,ensure(filename:join([Root,priv,static]))},
+   {server_root,LogDir},
+   {document_root,filename:join([Root,priv,static])},
    {modules, [mod_alias,mod_esi,mod_get,mod_log]},
    {directory_index, ["index.html"]},
-   {error_log,filename:join([Root,priv,server,"errors.log"])},
+   {error_log,filename:join([LogDir,"errors.log"])},
    {erl_script_alias, {"/erl", [?MODULE]}},
    {erl_script_nocache,true},
    {mime_types,[{"html","text/html"},
                 {"css","text/css"},
                 {"js","application/javascript"}]}].
-
-ensure(X) ->
-  filelib:ensure_dir(X++"/"),
-  X.
 
 %% called when the server sees /<module>/do[/?]*
 %% we can deliver the content in chunks, as long as do/3 does not return
