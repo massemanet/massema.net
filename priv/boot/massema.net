@@ -1,0 +1,89 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:           massema.net
+# Required-Start:     $remote_fs $network
+# Required-Stop:      $remote_fs $network
+# Default-Start:      2 3 4 5
+# Default-Stop:       0 1 6
+# Short-Description:  Start massema.net
+### END INIT INFO
+#
+# make a link to this file from etc/init.d;
+# ln -s <this file> /etc/init.d/
+#
+# create the runlevel-links like this;
+# sudo update-rc.d massema.net defaults 50
+#
+# now this should work;
+# sudo invoke-rc.d massema.net start
+# sudo invoke-rc.d massema.net stop
+
+export ERL=/opt/bin/erl
+export ITEM=massema.net
+export ITEM_STARTMOD=mm
+export ITEM_USER=masse
+export ITEM_GROUP=users
+export ITEM_LIBDIR=/home/$ITEM_USER/git/$ITEM/ebin
+export ITEM_LOGDIR=/var/log/$ITEM
+export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
+export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
+export SNAME=`echo $ITEM | tr "\-." "_"`
+
+[ -d $ITEM_LOGDIR ] || mkdir $ITEM_LOGDIR
+chown $ITEM_USER:$ITEM_GROUP $ITEM_LOGDIR
+[ -f $ITEM_BOOTLOG ] || touch $ITEM_BOOTLOG
+chown $ITEM_USER:$ITEM_GROUP $ITEM_BOOTLOG
+
+item_start() {
+    $ERL  \
+        -sname $SNAME \
+        -setcookie $ITEM \
+        -boot start_sasl \
+        -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
+        -pa $ITEM_LIBDIR \
+        -run $ITEM_STARTMOD \
+        -detached
+}
+export -f item_start
+
+item_stop() {
+    pkill -KILL -fu $ITEM_USER "run $ITEM_STARTMOD"
+}
+export -f item_stop
+
+item_shell() {
+    $ERL -sname $$ -remsh ${SNAME}@${HOSTNAME} -setcookie $ITEM
+}
+export -f item_shell
+
+out() {
+    flag=""
+    [ "$1" == "-n" ] && flag="-n" && shift
+    echo $flag "$1" >> $ITEM_BOOTLOG
+}
+
+out "`date | tr ' ' '-'` "
+case "$1" in
+    start)
+        out -n "starting $0..."
+        su -pc item_start $ITEM_USER && out -n " started..."
+        out " done."
+        ;;
+    stop)
+        out -n "stopping..."
+        su -pc 'item_stop' $ITEM_USER && out -n " stopped..."
+        out " done."
+        ;;
+    restart | force-reload)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+    attach | shell)
+        out -n "attaching $USER..."
+        su -pc 'item_shell' $ITEM_USER && out -n " attached..."
+        out " done."
+        ;;
+    *)
+        exit 1
+esac
