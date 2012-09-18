@@ -8,6 +8,8 @@
 # Short-Description:  Start massema.net
 ### END INIT INFO
 #
+# the below requires a somewhat debian-like system.
+#
 # make a link to this file from etc/init.d;
 # ln -s <this file> /etc/init.d/
 #
