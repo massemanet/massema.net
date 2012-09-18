@@ -1,9 +1,19 @@
-window.animationFrame = (function() {
-return window.requestAnimationFrame || 
-       window.webkitRequestAnimationFrame || 
-       window.mozRequestAnimationFrame || 
-       window.msRequestAnimationFrame;
-})();
+window.animationFrame =
+    (function() {
+         return window.requestAnimationFrame ||
+             window.webkitRequestAnimationFrame ||
+             window.mozRequestAnimationFrame ||
+             window.msRequestAnimationFrame;})();
+
+function drawCircle(ctx,x,y,r,color) {
+    var startAngle = 0;
+    var endAngle   = 2*Math.PI;
+
+    ctx.beginPath();
+    ctx.arc(x,y,r,startAngle,endAngle);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
 
 function init() {
   var canvas = resizer();
@@ -11,7 +21,7 @@ function init() {
            context: canvas.getContext("2d"),
            x: canvas.width/2,
            y: canvas.height/2,
-           d: 2,
+           d: 8,
            dx: 1,
            dy: 1});
 }
@@ -32,8 +42,10 @@ function resizer() {
 
 function animate(s) {
   // update stage
-  if ( !(0 <= s.x && s.x <= s.canvas.width) ) { s.dx *= -1 }
-  if ( !(0 <= s.y && s.y <= s.canvas.height) ) { s.dy *= -1 }
+  if ( s.x < 0 )               { s.dx =  1; s.x = 0; }
+  if ( s.canvas.width < s.x )  { s.dx = -1; s.x = s.canvas.width; }
+  if ( s.y < 0 )               { s.dy =  1; s.y = 0; }
+  if ( s.canvas.height < s.y ) { s.dy = -1; s.y = s.canvas.height; }
 
   s.x += s.dx;
   s.y += s.dy;
@@ -42,7 +54,7 @@ function animate(s) {
   s.context.clearRect(0, 0, s.canvas.width, s.canvas.height);
 
   // render stage
-  s.context.fillRect(s.x-s.d, s.y-s.d, s.d, s.d);
+  drawCircle(s.context,s.x,s.y,s.d,"white");
 
   // request new frame
   animationFrame(function() { animate(s); });
