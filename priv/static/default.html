@@ -1,0 +1,10 @@
+<html>
+  <title>I am {{ erlang:node }}</title>
+  <body>
+    <h2>{{ erlang:self.process_info.current_function.1 }}</h2>
+    Input:
+    <tt>{{ request.input }}</tt>
+    <br>Env:
+    <tt>{{ request.environment }}</tt>
+  </body>
+</html>
