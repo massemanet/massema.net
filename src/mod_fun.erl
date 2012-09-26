@@ -15,13 +15,9 @@ default(handler_function) -> {"",""}.
 %% "ERLANG WEB SERVER API CALLBACK FUNCTIONS"
 do(ModRec) ->
   case defer_response(ModRec) of
-    false-> {proceed,try handle(ModRec) catch _:_ -> fourofour(ModRec)end};
+    false-> {proceed,safe_handle(ModRec)};
     true -> {proceed, ModRec#mod.data}
   end.
-
-defer_response(#mod{data=Data}) ->
-  (proplists:get_value(response,Data) == undefined) andalso
-    (proplists:get_value(status,Data) == undefined).
 
 load("HandlerFunction " ++ HandlerFunction, []) ->
   try
@@ -45,16 +41,34 @@ store({handler_integer, TO} = Conf, _) when is_integer(TO)->
 store(Conf,_) ->
   {error,Conf}.
 
+%% we guarantee that handle/1 succeeds or we generate a 404.
+safe_handle(ModRec) ->
+  try handle(ModRec)
+  catch _:_ -> fourofour(ModRec)
+  end.
+
+%% true if some other mod_* has already handled the request
+defer_response(#mod{data=Data}) ->
+  (proplists:get_value(response,Data) == undefined) andalso
+    (proplists:get_value(status,Data) == undefined).
+
 %%%========================================================================   
-%% we spawn into the handler fun, monitors it, and waits for data chunks.
-%% 
+%% since the handler fun can send many chunks, or not used chunked
+%%  encoding at all,  we keep state while waiting.
 -record(s,{state=init,
            chunks=[],
            headers=[],
            status=200,
            path="",
+           length=0,
            chunked_send_p,
            timeout}).
+
+%% should we do chunked sending
+chunked_send_p(#mod{config_db=Db,http_version=HTTPV}) ->
+  (HTTPV =/= "HTTP/1.1") orelse httpd_response:is_disable_chunked_send(Db).
+
+%% we spawn into the handler fun, monitors it, and waits for data chunks.
 handle(ModRec) ->
   Mod = lists:zip(record_info(fields,mod),tl(tuple_to_list(ModRec))),
   {M,F} = mod_get(ModRec,handler_function),
@@ -66,36 +80,32 @@ handle(ModRec) ->
 loop({Pid,Ref},S,ModRec) ->
   Timeout = S#s.timeout,
   receive 
-    {Pid,Chunk} -> loop({Pid,Ref},chunk(Chunk,S,ModRec),ModRec);
-    {'DOWN',Ref,_,Pid,normal} -> wrapup(ModRec,S);
-    {'DOWN',Ref,_,Pid,_} -> fourofour(ModRec)
+    {Pid,Chunk}               -> loop({Pid,Ref},chunk(Chunk,S,ModRec),ModRec);
+    {'DOWN',Ref,_,Pid,normal} -> twohundred(ModRec,S);
+    {'DOWN',Ref,_,Pid,_}      -> fourofour(ModRec)
   after
-    Timeout ->
-      send_headers(false,ModRec,504,[]),
-      httpd_socket:close(ModRec#mod.socket_type, ModRec#mod.socket),
-      fiveofour(ModRec,S)
+    Timeout -> fiveofour(ModRec)
   end.
 
-wrapup(#mod{data=Data},#s{state=location,path=Path}) ->
-  [{real_name,Path} | Data];
-wrapup(ModRec,#s{state=has_header,headers=H,chunks=B,status=St}=S) ->
+twohundred(ModRec,#s{state=has_header,headers=H,chunks=B,status=St}=S) ->
   send_unchunked(ModRec,H,St,B),
-  twohundred(ModRec,S);
-wrapup(ModRec,#s{state=sent_headers}=S) ->
+  [{response, {already_sent, 200, S#s.length}} | ModRec#mod.data];
+twohundred(ModRec,#s{state=sent_headers}=S) ->
   send_final_chunk(ModRec),
-  twohundred(ModRec,S).
-
-mod_get(ModRec,Key) ->
-  httpd_util:lookup(ModRec#mod.config_db,Key,default(Key)).
+  [{response, {already_sent, 200, S#s.length}} | ModRec#mod.data].
 
 fourofour(#mod{request_uri=URI,data=Data}) ->
   [{status, {404, URI, "Not found"}} | Data].
 
-twohundred(#mod{data=Data},#s{length=Length}) ->
-  [{response, {already_sent, 200, Length}} | Data].
+fiveofour(ModRec) ->
+  send_headers(false,ModRec,504,[]),
+  httpd_socket:close(ModRec#mod.socket_type, ModRec#mod.socket),
+%%  [{status,{504,ModRec#mod.request_uri,"Timeout"}} | ModRec#mod.data].
+%% mod_esi send this... apparently because it already closed the socket.
+  [{response, {already_sent, 200, 0}} | ModRec#mod.data].
 
-chunked_send_p(#mod{config_db=Db,http_version=HTTPV}) ->
-  (HTTPV =/= "HTTP/1.1") orelse httpd_response:is_disable_chunked_send(Db).
+mod_get(ModRec,Key) ->
+  httpd_util:lookup(ModRec#mod.config_db,Key,default(Key)).
 
 chunk(Chunk,S,ModRec) ->
   case S#s.state of
@@ -106,17 +116,18 @@ chunk(Chunk,S,ModRec) ->
             true -> 
               send_headers(true,ModRec,Status,Head),
               send_chunk(ModRec,Body),
-              S#s{state=sent_headers,chunks=[],status=Status};
+              Len = S#s.length + length(Body),
+              S#s{state=sent_headers,chunks=[],status=Status,length=Len};
             false->
               S#s{state=has_headers,headers=Head,chunks=Body,status=Status}
           end;
-        {location,AbsPath} ->
-          S#s{state=location,path=httpd_util:split_path(AbsPath)};
         {nok,C} ->
           S#s{chunks=C}
       end;
     sent_headers ->
-      send_chunk(ModRec,Chunk);
+      Len = S#s.length + length(Chunk),
+      send_chunk(ModRec,Chunk),
+      S#s{length=Len};
     has_headers -> 
       S#s{chunks=S#s.chunks++Chunk};
     _ -> 
@@ -129,7 +140,6 @@ check_headers(Chunks) ->
       {nok,Chunks};
     {Head,Rest} -> 
       case httpd_esi:handle_headers(Head) of
-        {proceed, AbsPath} -> {location, AbsPath};
         {ok, Headers, Status} -> {ok,Headers,Rest,Status}
       end
   end.
