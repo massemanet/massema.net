@@ -37,9 +37,7 @@ load("HandlerTimeout " ++ HandlerTimeout, []) ->
 store({handler_function, {M,F}} = Conf, _) when is_atom(M),is_atom(F)->
   {ok, Conf};
 store({handler_integer, TO} = Conf, _) when is_integer(TO)->
-  {ok, Conf};
-store(Conf,_) ->
-  {error,Conf}.
+  {ok, Conf}.
 
 %% we guarantee that handle/1 succeeds or we generate a 404.
 safe_handle(ModRec) ->
@@ -49,8 +47,8 @@ safe_handle(ModRec) ->
 
 %% true if some other mod_* has already handled the request
 defer_response(#mod{data=Data}) ->
-  (proplists:get_value(response,Data) == undefined) andalso
-    (proplists:get_value(status,Data) == undefined).
+  (proplists:get_value(response,Data) =/= undefined) orelse
+    (proplists:get_value(status,Data) =/= undefined).
 
 %%%========================================================================   
 %% since the handler fun can send many chunks, or not used chunked
@@ -77,17 +75,22 @@ handle(ModRec) ->
          timeout=mod_get(ModRec,handler_timeout)},
   loop(spawn_monitor(fun() -> M:F(Self,Mod) end),S,ModRec).
 
+mod_get(ModRec,Key) ->
+  httpd_util:lookup(ModRec#mod.config_db,Key,default(Key)).
+
 loop({Pid,Ref},S,ModRec) ->
   Timeout = S#s.timeout,
   receive 
     {Pid,Chunk}               -> loop({Pid,Ref},chunk(Chunk,S,ModRec),ModRec);
+    {'DOWN',Ref,_,Pid,defer}  -> ModRec#mod.data;
     {'DOWN',Ref,_,Pid,normal} -> twohundred(ModRec,S);
     {'DOWN',Ref,_,Pid,_}      -> fourofour(ModRec)
   after
-    Timeout -> fiveofour(ModRec)
+    Timeout -> exit(Pid,kill)
   end.
 
-twohundred(ModRec,#s{state=has_header,headers=H,chunks=B,status=St}=S) ->
+%% responses. either 200 or 404
+twohundred(ModRec,#s{state=has_headers,headers=H,chunks=B,status=St}=S) ->
   send_unchunked(ModRec,H,St,B),
   [{response, {already_sent, 200, S#s.length}} | ModRec#mod.data];
 twohundred(ModRec,#s{state=sent_headers}=S) ->
@@ -97,16 +100,11 @@ twohundred(ModRec,#s{state=sent_headers}=S) ->
 fourofour(#mod{request_uri=URI,data=Data}) ->
   [{status, {404, URI, "Not found"}} | Data].
 
-fiveofour(ModRec) ->
-  send_headers(false,ModRec,504,[]),
-  httpd_socket:close(ModRec#mod.socket_type, ModRec#mod.socket),
-%%  [{status,{504,ModRec#mod.request_uri,"Timeout"}} | ModRec#mod.data].
-%% mod_esi send this... apparently because it already closed the socket.
-  [{response, {already_sent, 200, 0}} | ModRec#mod.data].
 
-mod_get(ModRec,Key) ->
-  httpd_util:lookup(ModRec#mod.config_db,Key,default(Key)).
-
+%% got a chunk.
+%% if we're not chunking, stash everything.
+%% if we're chunking, stash until we have a header. once we do, send it.
+%% once we've sent the header, send every chunk we get.
 chunk(Chunk,S,ModRec) ->
   case S#s.state of
     init -> 
@@ -144,8 +142,10 @@ check_headers(Chunks) ->
       end
   end.
 
+%% not chunking
 send_headers(false,ModRec,Status,Headers) ->
   send_headers(ModRec, Status, [{"connection","close"} | Headers]);
+%% chunking
 send_headers(true,ModRec,Status,Headers) ->
   send_headers(ModRec, Status, [{"transfer-encoding","chunked"} | Headers]).
 
@@ -153,6 +153,8 @@ send_headers(ModRec, Status, HTTPHeaders) ->
   ExtraHeaders = httpd_response:cache_headers(ModRec),
   httpd_response:send_header(ModRec, Status, ExtraHeaders ++ HTTPHeaders).
 
+send_chunk(_ModRec,[]) -> 
+  ok;
 send_chunk(ModRec,Chunk) ->
   httpd_response:send_chunk(ModRec,Chunk,false).
 

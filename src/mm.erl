@@ -8,7 +8,7 @@
 -module(mm).
 -author('mats cronqvist').
 -export([ start/0
-         ,do/3]).
+         ,dtl/2]).
 
 start() ->
   inets:stop(),
@@ -25,31 +25,21 @@ conf() ->
    {server_name,atom_to_list(?MODULE)},
    {server_root,LogDir},
    {document_root,filename:join([Root,priv,static])},
-   {modules, [mod_alias,mod_esi,mod_get,mod_log]},
-   {directory_index, ["index.html"]},
+   {modules, [mod_fun,mod_get,mod_log]},
    {error_log,filename:join([LogDir,"errors.log"])},
-   {erl_script_alias, {"/erl", [?MODULE]}},
-   {erl_script_nocache,true},
+   {handler_function,{?MODULE,dtl}},
    {mime_types,[{"html","text/html"},
                 {"css","text/css"},
                 {"js","application/javascript"}]}].
 
-%% called when the server sees /<module>/do[/?]*
-%% we can deliver the content in chunks, as long as do/3 does not return
-do(SessionID,Env,Input) ->
-  mod_esi:deliver(SessionID,
-                  ["Content-Type: text/html\r\n\r\n", 
-                   "<html><title>I am ",
-                   flat(node()),
-                   "</title><body><h2>",
-                   flat(?MODULE),
-                   "</h2>Input:<tt>",
-                   flat(Input),
-                   "</tt>"]),
-  mod_esi:deliver(SessionID,
-                  ["<br>Env:",
-                   flat(Env),
-                   "</body></html>"]).
+%% called from the server
+%% we can deliver the content in chunks by sending {self(),Chunk} to P.
+%% if we don't want to handle the request, we do exit(defer)
+dtl(P,Request) ->
+  case proplists:get_value(request_uri,Request) of
+    "/favicon.ico" -> exit(defer);
+    _ -> P ! {self(),"Content-Type: text/html\r\n\r\n"++flat(Request)}
+  end.
 
 flat(X) ->
   lists:flatten(io_lib:fwrite("~p",[X])).
