@@ -82,9 +82,9 @@ case "$1" in
         $0 start
         ;;
     attach | shell)
-        out -n "attaching $USER..."
-        su -pc 'item_shell' $ITEM_USER && out -n " attached..."
-        out " done."
+        out "attaching $USER - $$."
+        su -pc 'item_shell' $ITEM_USER || out -n "Failed... "
+        out "detaching $USER - $$."
         ;;
     *)
         exit 1
