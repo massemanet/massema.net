@@ -40,11 +40,24 @@ conf() ->
 %% if we don't want to handle the request, we do exit(defer)
 %% if we crash, there will be a 404
 dtl(P,Request) ->
-  case filename:extension(proplists:get_value(request_uri,Request)) of
-    ".html" -> P ! {self(),"<h1>h1</h1>"},
-               P ! {self(),flat(Request)};
+  case filename:extension(gt(request_uri,Request)) of
+    ".html" -> 
+      case file_exists(Request) of
+        true -> exit(defer);
+        false->
+          P ! {self(),"<h1>h1</h1>"},
+          P ! {self(),flat(Request)}
+      end;
     _ -> exit(defer)
   end.
 
 flat(X) ->
   lists:flatten(io_lib:fwrite("~p",[X])).
+
+file_exists(Request) ->
+  case gt(real_name,gt(data,Request)) of
+    {Name,_} -> filelib:is_regular(Name);
+    _ -> false
+  end.
+
+gt(Key,List) -> proplists:get_value(Key,List).
