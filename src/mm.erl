@@ -25,20 +25,25 @@ conf() ->
    {server_name,atom_to_list(?MODULE)},
    {server_root,LogDir},
    {document_root,filename:join([Root,priv,static])},
-   {modules, [mod_fun,mod_get,mod_log]},
+   {modules, [mod_alias,mod_fun,mod_get,mod_log]},
+   {directory_index, ["index.html"]},
    {error_log,filename:join([LogDir,"errors.log"])},
    {handler_function,{?MODULE,dtl}},
    {mime_types,[{"html","text/html"},
                 {"css","text/css"},
+                {"ico","image/x-icon"},
                 {"js","application/javascript"}]}].
 
 %% called from the server
 %% we can deliver the content in chunks by sending {self(),Chunk} to P.
+%% the first chunk can be headers; [{Key,Val}]
 %% if we don't want to handle the request, we do exit(defer)
+%% if we crash, there will be a 404
 dtl(P,Request) ->
-  case proplists:get_value(request_uri,Request) of
-    "/favicon.ico" -> exit(defer);
-    _ -> P ! {self(),"Content-Type: text/html\r\n\r\n"++flat(Request)}
+  case filename:extension(proplists:get_value(request_uri,Request)) of
+    ".html" -> P ! {self(),"<h1>h1</h1>"},
+               P ! {self(),flat(Request)};
+    _ -> exit(defer)
   end.
 
 flat(X) ->

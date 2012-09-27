@@ -9,7 +9,7 @@
 -define(VMODULE,"FUN").
 
 %% the configuration parameters
-default(handler_timeout) -> 15000;
+default(handler_timeout) -> 5000;
 default(handler_function) -> {"",""}.
 
 %% "ERLANG WEB SERVER API CALLBACK FUNCTIONS"
@@ -56,7 +56,6 @@ defer_response(#mod{data=Data}) ->
 -record(s,{state=init,
            chunks=[],
            headers=[],
-           status=200,
            path="",
            length=0,
            chunked_send_p,
@@ -86,12 +85,12 @@ loop({Pid,Ref},S,ModRec) ->
     {'DOWN',Ref,_,Pid,normal} -> twohundred(ModRec,S);
     {'DOWN',Ref,_,Pid,_}      -> fourofour(ModRec)
   after
-    Timeout -> exit(Pid,kill)
+    Timeout -> exit(Pid,kill), loop({Pid,Ref},S,ModRec)
   end.
 
 %% responses. either 200 or 404
-twohundred(ModRec,#s{state=has_headers,headers=H,chunks=B,status=St}=S) ->
-  send_unchunked(ModRec,H,St,B),
+twohundred(ModRec,#s{state=has_headers,headers=H,chunks=B}=S) ->
+  send_unchunked(ModRec,H,B),
   [{response, {already_sent, 200, S#s.length}} | ModRec#mod.data];
 twohundred(ModRec,#s{state=sent_headers}=S) ->
   send_final_chunk(ModRec),
@@ -100,27 +99,22 @@ twohundred(ModRec,#s{state=sent_headers}=S) ->
 fourofour(#mod{request_uri=URI,data=Data}) ->
   [{status, {404, URI, "Not found"}} | Data].
 
-
-%% got a chunk.
-%% if we're not chunking, stash everything.
-%% if we're chunking, stash until we have a header. once we do, send it.
-%% once we've sent the header, send every chunk we get.
+%% got a chunk. it's either headers or a body part.
+%% if we don't get headers first time, use default headers.
+%% if we're not usung chunked encoding, stash everything.
+%% if we are using chunked encoding, send every chunk we get.
 chunk(Chunk,S,ModRec) ->
   case S#s.state of
     init -> 
-      case check_headers(S#s.chunks++Chunk) of
-        {ok,Head,Body,Status} -> 
-          case S#s.chunked_send_p of
-            true -> 
-              send_headers(true,ModRec,Status,Head),
-              send_chunk(ModRec,Body),
-              Len = S#s.length + length(Body),
-              S#s{state=sent_headers,chunks=[],status=Status,length=Len};
-            false->
-              S#s{state=has_headers,headers=Head,chunks=Body,status=Status}
-          end;
-        {nok,C} ->
-          S#s{chunks=C}
+      {Headers,Body} = check_headers(Chunk),
+      case S#s.chunked_send_p of
+        true -> 
+          send_headers(true,ModRec,Headers),
+          send_chunk(ModRec,Body),
+          Len = S#s.length + length(Body),
+          S#s{state=sent_headers,chunks=[],length=Len};
+        false->
+          S#s{state=has_headers,headers=Headers,chunks=Body}
       end;
     sent_headers ->
       Len = S#s.length + length(Chunk),
@@ -132,36 +126,36 @@ chunk(Chunk,S,ModRec) ->
       S
   end.
 
-check_headers(Chunks) ->
-  case httpd_esi:parse_headers(Chunks) of % ridiculously named split_at_eoh fun
-    {[],_} -> 
-      {nok,Chunks};
-    {Head,Rest} -> 
-      case httpd_esi:handle_headers(Head) of
-        {ok, Headers, Status} -> {ok,Headers,Rest,Status}
-      end
+check_headers(Chunk) ->
+  case is_headers(Chunk) of
+    true -> {Chunk,""};
+    false-> {[{"content-type","text/html"}],Chunk}
   end.
 
+is_headers([{_,_}|L]) -> is_headers(L);
+is_headers([]) -> true;
+is_headers(_) -> false.
+
+%%%% send stuff
 %% not chunking
-send_headers(false,ModRec,Status,Headers) ->
-  send_headers(ModRec, Status, [{"connection","close"} | Headers]);
+send_headers(false,ModRec,Headers) ->
+  send_headers(ModRec,[{"connection","close"} | Headers]);
 %% chunking
-send_headers(true,ModRec,Status,Headers) ->
-  send_headers(ModRec, Status, [{"transfer-encoding","chunked"} | Headers]).
+send_headers(true,ModRec,Headers) ->
+  send_headers(ModRec,[{"transfer-encoding","chunked"} | Headers]).
 
-send_headers(ModRec, Status, HTTPHeaders) ->
+%% wrapper around httpd_response
+send_headers(ModRec,HTTPHeaders) ->
   ExtraHeaders = httpd_response:cache_headers(ModRec),
-  httpd_response:send_header(ModRec, Status, ExtraHeaders ++ HTTPHeaders).
+  httpd_response:send_header(ModRec,200,ExtraHeaders++HTTPHeaders).
 
-send_chunk(_ModRec,[]) -> 
-  ok;
 send_chunk(ModRec,Chunk) ->
   httpd_response:send_chunk(ModRec,Chunk,false).
 
 send_final_chunk(ModRec) ->
   httpd_response:send_final_chunk(ModRec,false).
 
-send_unchunked(ModRec,Headers,Status,Body) ->
+send_unchunked(ModRec,Headers,Body) ->
   Len = integer_to_list(lists:flatlength(Body)),
-  send_headers(false,ModRec,Status,[{"content-length",Len} | Headers]),
-  httpd_response:send_body(ModRec,Status,Body).
+  send_headers(false,ModRec,[{"content-length",Len} | Headers]),
+  httpd_response:send_body(ModRec,200,Body).
