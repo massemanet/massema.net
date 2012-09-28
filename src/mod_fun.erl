@@ -1,3 +1,9 @@
+%% A plugin to enable a somewhat sane web server programming
+%% experience on top of inets. It is still much worse than
+%% webmachine/mochiweb. Use that if you can! This code could only
+%% concievably be useful for people who, for some fiendish reason, is
+%% stuck with inets. Pity those fools.
+%%
 -module(mod_fun).
 %% the rather grandiosely named "ERLANG WEB SERVER CALLBACK API"
 -export([do/1, load/2, store/2]).
@@ -6,7 +12,7 @@
 -include_lib("inets/src/http_server/httpd_internal.hrl").
 -include_lib("inets/src/inets_app/inets_internal.hrl").
 
--define(VMODULE,"FUN").
+-define(VMODULE,"FUN").    % what the hell does this do? snmp??
 
 %% the configuration parameters
 default(handler_timeout) -> 5000;
@@ -67,12 +73,15 @@ chunked_send_p(#mod{config_db=Db,http_version=HTTPV}) ->
 
 %% we spawn into the handler fun, monitors it, and waits for data chunks.
 handle(ModRec) ->
-  Mod = lists:zip(record_info(fields,mod),tl(tuple_to_list(ModRec))),
-  {M,F} = mod_get(ModRec,handler_function),
   Self = self(),
+  {M,F} = mod_get(ModRec,handler_function),
   S = #s{chunked_send_p=chunked_send_p(ModRec),
          timeout=mod_get(ModRec,handler_timeout)},
-  loop(spawn_monitor(fun() -> M:F(Self,Mod) end),S,ModRec).
+  Act = fun(defer) -> exit(defer);(L) -> Self ! {self(),L} end,
+  Mod = lists:zip(record_info(fields,mod),tl(tuple_to_list(ModRec))),
+  Req = fun(all) -> proplists:unfold(Mod);
+           (Key) -> proplists:get_value(Key,Mod) end,
+  loop(spawn_monitor(fun() -> M:F(Act,Req) end),S,ModRec).
 
 mod_get(ModRec,Key) ->
   httpd_util:lookup(ModRec#mod.config_db,Key,default(Key)).

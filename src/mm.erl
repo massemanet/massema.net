@@ -35,29 +35,27 @@ conf() ->
                 {"js","application/javascript"}]}].
 
 %% called from the server
-%% we can deliver the content in chunks by sending {self(),Chunk} to P.
+%% we can deliver the content in chunks by calling Act(Chunk).
 %% the first chunk can be headers; [{Key,Val}]
-%% if we don't want to handle the request, we do exit(defer)
+%% if we don't want to handle the request, we do Act(defer)
 %% if we crash, there will be a 404
-dtl(P,Request) ->
-  case filename:extension(gt(request_uri,Request)) of
+dtl(Act,Req) ->
+  case filename:extension(Req(request_uri)) of
     ".html" -> 
-      case file_exists(Request) of
-        true -> exit(defer);
+      case file_exists(Req) of
+        true -> Act(defer);
         false->
-          P ! {self(),"<h1>h1</h1>"},
-          P ! {self(),flat(Request)}
+          Act("<h1>h1</h1>"),
+          Act(flat(Req(all)))
       end;
-    _ -> exit(defer)
+    _ -> Act(defer)
   end.
 
 flat(X) ->
   lists:flatten(io_lib:fwrite("~p",[X])).
 
-file_exists(Request) ->
-  case gt(real_name,gt(data,Request)) of
+file_exists(Req) ->
+  case proplists:get_value(real_name,Req(data)) of
     {Name,_} -> filelib:is_regular(Name);
     _ -> false
   end.
-
-gt(Key,List) -> proplists:get_value(Key,List).
