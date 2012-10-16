@@ -8,7 +8,6 @@
 -module(mm).
 -author('mats cronqvist').
 -export([start/0
-         ,parse/1
          ,test/0
          ,do/2]).
 
@@ -60,61 +59,134 @@ mustache_file(Req) ->
 
 mustache(MF) ->
   {ok,Bin} = file:read_file(MF),
-  parse(binary_to_list(Bin)).
+  compile_mustache(binary_to_list(Bin)).
 
--record(ms,{state=off,cfrag="",frags=[],cfun="",funs=[]}).
-parse(Str) ->
-  try compile(parse(Str,#ms{}))
+%% compile the mustache file to internal form; a list, an alternating
+%% sequence of html fragments (string) and funs.
+
+compile_mustache(Str) ->
+  try compile(parse(Str))
   catch throw:R -> error_logger:error_report(R),Str
   end.
 
+%% parse the mustache file. Output is two lists; one list of html
+%% "fragments" (strings), and one list of mustache "nuggets" (also strings).
+%% the nuggets will be compiled to funs in the next stage.
 %% 92 is the escape char, "\"
 %% "\" is forbidden in mustache context. in html context, it escapes the next
 %% character. E.g. "{\{" will become "{{", and "\\" will become "\".
-parse([92|R],   #ms{state=on} = MS) -> error(escape,MS,R);
-parse([92,C|R], #ms{state=off}= MS) -> parse(R,MS#ms{cfrag=[C|MS#ms.cfrag]});
-parse([$},$}|R],#ms{state=off}= MS) -> error(terminator,MS,R);
-parse([${,${|R],#ms{state=on} = MS) -> error(nesting,MS,R);
-parse([$},$}|R],#ms{state=on} = MS) -> parse(R,off(MS));
-parse([${,${|R],#ms{state=off}= MS) -> parse(R,on(MS));
-parse([C|R],    #ms{state=on} = MS) -> parse(R,MS#ms{cfun=[C|MS#ms.cfun]});
-parse([C|R],    #ms{state=off}= MS) -> parse(R,MS#ms{cfrag=[C|MS#ms.cfrag]});
-parse([],       #ms{state=on} = MS) -> error(premature,MS,"");
-parse([],       #ms{state=off}= MS) -> done(MS).
+-record(ms,{state=off,cfrag="",frags=[],cnugg="",nuggs=[]}).
+parse(Str) ->
+  try parse(Str,#ms{})
+  catch throw:{R,Tail} -> 
+      error_logger:error_report(syntax_error(R,Tail,Str)),
+      {[Str],[]}
+  end.
 
-error(Err,#ms{state=on, frags=[F|_]},R) -> throw({Err,F++"^"++R});
-error(Err,#ms{state=on, frags=[]},R)    -> throw({Err,""++"^"++R});
-error(Err,#ms{state=off,funs =[F|_]},R) -> throw({Err,F++"^"++R});
-error(Err,#ms{state=off,funs =[]},R)    -> throw({Err,""++"^"++R}).
+parse([$},$}|R],#ms{state=on} = MS) -> parse(R,off(MS));
+parse([92|R],   #ms{state=on})      -> throw({escape,R});
+parse([${|R],   #ms{state=on})      -> throw({nesting,R});
+parse([$}|R],   #ms{state=on})      -> throw({nesting,R});
+parse([],       #ms{state=on})      -> throw({premature,""});
+parse([C|R],    #ms{state=on} = MS) -> parse(R,MS#ms{cnugg=[C|MS#ms.cnugg]});
+parse([$},$}|R],#ms{state=off})     -> throw({terminator,R});
+parse([92,C|R], #ms{state=off}= MS) -> parse(R,MS#ms{cfrag=[C|MS#ms.cfrag]});
+parse([${,${|R],#ms{state=off}= MS) -> parse(R,on(MS));
+parse([C|R],    #ms{state=off}= MS) -> parse(R,MS#ms{cfrag=[C|MS#ms.cfrag]});
+parse([],       #ms{state=off}= MS) -> done(MS).
 
 on(MS) ->
   MS#ms{frags=[lists:reverse(MS#ms.cfrag)|MS#ms.frags],cfrag=[],state=on}.
 off(MS) ->
-  MS#ms{funs=[lists:reverse(MS#ms.cfun)|MS#ms.funs],cfun=[],state=off}.
+  MS#ms{nuggs=[lists:reverse(MS#ms.cnugg)|MS#ms.nuggs],cnugg=[],state=off}.
 
-done(#ms{frags=Frags,cfrag=CF,funs=Funs}) ->
-  {lists:reverse([lists:reverse(CF)|Frags]),lists:reverse(Funs)}.
+done(#ms{frags=Frags,cfrag=CF,nuggs=Nuggs}) ->
+  {lists:reverse([lists:reverse(CF)|Frags]),lists:reverse(Nuggs)}.
 
-compile({[],[]}) -> [];
-compile({[F1|Frags],Funs}) ->
-  F1++cmp(Frags,Funs).
+syntax_error(R,Tail,Str) ->
+  {R,trim(Str,Tail)++"^"++trim(Tail)}.
+
+trim(Str,Tail) -> lists:reverse(trim(lists:reverse(Str)--Tail)).
+trim(Str) -> lists:sublist(Str,10).
+
+%% compile nuggets to funs
+compile({Fs,Ns}) ->
+  compile(Fs,Ns).
+
+compile([],[]) -> [];
+compile([F1|Frags],Nuggets) ->
+  [F1|cmp(Frags,Nuggets)].
 
 cmp([],[]) -> "";
-cmp([Frag|Frags],[Fun|Funs]) ->
-  Fun++Frag++cmp(Frags,Funs).
+cmp([Frag|Frags],[Nugget|Nuggets]) ->
+  [mcompile(Nugget),Frag|cmp(Frags,Nuggets)].
 
+%% compile a mustache nugget to a fun
+mcompile(Str) ->
+  Types = types(),
+  Fs = [mdo(Types,I) || I <- string:tokens(Str,".")],
+  fun(Ctxt) -> thread(Ctxt,Fs) end.
+
+thread(Ctxt,[])     -> Ctxt;
+thread(Ctxt,[F|Fs]) -> thread(F(Ctxt),Fs).
+
+mdo(Types,I) ->
+  case first(Types,I) of
+    {M,F} -> wrap2(M,F);
+    X     -> wrap1(X)
+  end.
+
+wrap1(X) ->
+  fun(M) ->
+      case M of
+        ""                 -> "";
+        [{_,_}|_]          -> proplists:get_value(X,M);
+        [_|_]              -> lists:nth(X,M);
+        _ when is_tuple(M) -> element(X,M)
+      end
+  end.
+
+wrap2(ets,T) ->
+  fun(K)->
+      try element(2,hd(ets:lookup(T,K)))
+      catch _:_ -> ""
+      end
+  end;
+wrap2(M,F) ->
+  fun(V)->
+      try M:F(V)
+      catch _:_ -> ""
+      end
+  end.
+
+first([T|Ts],I) ->
+  try T(I)
+  catch _:_ -> first(Ts,I)
+  end.
+
+types() ->
+  [fun(I) -> [M,F] = string:tokens(I,":"),{list_to_atom(M),list_to_atom(F)}end,
+   fun(I) -> list_to_integer(I)end,
+   fun(I) -> list_to_atom(I)end].
+
+%% run a mustache term.
+%% returns a string.
+run([],_) -> "";
+run([F|R],Ctxt0) when is_function(F) -> F(Ctxt0)++run(R,Ctxt0);
+run([F|R],Ctxt0) -> F++run(R,Ctxt0).
+
+%% ad-hoc unit testing of the mustache compiler
 test() ->
   FN = filename:join([code:priv_dir(massema.net),test,test.mustache]),
   {ok,FD} = file:open(FN,[read]),
-  try test(FD,io:get_line(FD,''))
+  try test(FD,io:get_line(FD,''),io:get_line(FD,''))
   after file:close(FD)
   end.
 
-test(_,eof) -> ok;
-test(FD,Line) ->
-  A = io:get_line(FD,''),
-  R = parse(Line),
+test(_,eof,eof) -> ok;
+test(FD,Line,A) ->
+  R = run(compile_mustache(Line),[]),
   try R = A
   catch _:{badmatch,_} -> error_logger:error_report([{got,R},{expected,A}])
   end,
-  test(FD,io:get_line(FD,'')).
+  test(FD,io:get_line(FD,''),io:get_line(FD,'')).
