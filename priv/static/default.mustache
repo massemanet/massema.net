@@ -1,8 +1,10 @@
 <html>
-  <title>I am {{ erlang:node }}</title>
+  <title>massema.net</title>
   <body>
-    <h2>{{ erlang:self.process_info.current_function.1 }}</h2>
+    Node: <tt>{{ ''.erlang:node }}</tt><p>
+    Current function:<tt>
+      {{ ''.erlang:self.erlang:process_info.current_function.1 }}</tt><p>
     Request:
-    <tt>{{ RQ }}</tt>
+    <tt>{{ all }}</tt>
   </body>
 </html>

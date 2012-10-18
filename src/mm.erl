@@ -61,7 +61,7 @@ mustache_file(Req) ->
 
 mustache(MF,Req) ->
   {ok,Bin} = file:read_file(MF),
-  run(compile_mustache(binary_to_list(Bin)),Req(all)).
+  run(compile_mustache(binary_to_list(Bin)),Req).
 
 %% compile the mustache file to internal form; a list, an alternating
 %% sequence of html fragments (string) and funs.
@@ -124,11 +124,24 @@ cmp([Frag|Frags],[Nugget|Nuggets]) ->
 %% compile a mustache nugget to a fun
 mcompile(Str) ->
   Types = types(),
-  Fs = [mdo(Types,I) || I <- string:tokens(Str,". ")],
-  fun(Ctxt) -> thread(Ctxt,Fs) end.
+  case string:tokens(Str,". ") of  %% this will not support escaped "."
+    [] ->
+      fun(_) -> "" end;
+    [H|T] -> 
+      F0 = case H of
+             "''" -> fun(_) -> '' end;
+             _ -> mdo(Types,H)
+           end,
+      Fs = [mdo(Types,I) || I <- T],
+      fun(Ctxt) -> thread(F0(Ctxt),Fs) end
+  end.
 
-thread(Ctxt,[])     -> Ctxt;
+thread(Ctxt,[])     -> to_str(Ctxt);
 thread(Ctxt,[F|Fs]) -> thread(F(Ctxt),Fs).
+
+-define(is_string(S),is_integer(hd(S));S=:="").
+to_str(Str) when ?is_string(Str) -> Str;
+to_str(Term) -> io_lib:format("~p",[Term]).
 
 mdo(Types,I) ->
   case first(Types,I) of
@@ -137,25 +150,30 @@ mdo(Types,I) ->
   end.
 
 wrap(X) ->
-  fun(M) ->
-      case M of
-        ""                 -> "";
-        [{_,_}|_]          -> proplists:get_value(X,M);
-        [_|_]              -> lists:nth(X,M);
-        _ when is_tuple(M) -> element(X,M);
-        _                  -> logg([{field,X},{struct,M}]),""
+  fun(Ctxt) ->
+      case Ctxt of
+        ""                       -> "";
+        [{_,_}|_]                -> proplists:get_value(X,Ctxt);
+        [_|_]                    -> lists:nth(X,Ctxt);
+        _ when is_tuple(Ctxt)    -> element(X,Ctxt);
+        _ when is_function(Ctxt) -> Ctxt(X);
+        _                        -> logg([{field,X},{ctxt,Ctxt}]),""
       end
   end.
 
 wrap(ets,T) ->
-  fun(K)->
-      try element(2,hd(ets:lookup(T,K)))
+  fun(Ctxt)->
+      try element(2,hd(ets:lookup(T,Ctxt)))
       catch _:_ -> ""
       end
   end;
 wrap(M,F) ->
-  fun(V)->
-      try M:F(V)
+  fun(Ctxt)->
+      try
+        case Ctxt of
+          '' -> M:F();
+          _  -> M:F(Ctxt)
+        end
       catch _:_ -> ""
       end
   end.
