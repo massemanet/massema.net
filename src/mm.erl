@@ -16,6 +16,8 @@ start() ->
   inets:start(),
   inets:start(httpd,conf()).
 
+logg(E) -> error_logger:error_report(E).
+
 %% we rely on the convention that the error log lives in ".../<app>/<logfile>"
 %% and static pages lives in priv_dir/static
 conf() ->
@@ -43,7 +45,7 @@ conf() ->
 do(Act,Req) ->
   case mustache_file(Req) of
     "" -> Act(defer);
-    MF -> Act(mustache(MF))
+    MF -> Act(mustache(MF,Req))
   end.
 
 mustache_file(Req) ->
@@ -57,16 +59,16 @@ mustache_file(Req) ->
     _:_ -> ""
   end.
 
-mustache(MF) ->
+mustache(MF,Req) ->
   {ok,Bin} = file:read_file(MF),
-  compile_mustache(binary_to_list(Bin)).
+  run(compile_mustache(binary_to_list(Bin)),Req(all)).
 
 %% compile the mustache file to internal form; a list, an alternating
 %% sequence of html fragments (string) and funs.
 
 compile_mustache(Str) ->
   try compile(parse(Str))
-  catch throw:R -> error_logger:error_report(R),Str
+  catch throw:R -> logg(R),Str
   end.
 
 %% parse the mustache file. Output is two lists; one list of html
@@ -78,9 +80,7 @@ compile_mustache(Str) ->
 -record(ms,{state=off,cfrag="",frags=[],cnugg="",nuggs=[]}).
 parse(Str) ->
   try parse(Str,#ms{})
-  catch throw:{R,Tail} -> 
-      error_logger:error_report(syntax_error(R,Tail,Str)),
-      {[Str],[]}
+  catch throw:{R,Tail} -> logg(syntax_error(R,Tail,Str)), {[Str],[]}
   end.
 
 parse([$},$}|R],#ms{state=on} = MS) -> parse(R,off(MS));
@@ -124,7 +124,7 @@ cmp([Frag|Frags],[Nugget|Nuggets]) ->
 %% compile a mustache nugget to a fun
 mcompile(Str) ->
   Types = types(),
-  Fs = [mdo(Types,I) || I <- string:tokens(Str,".")],
+  Fs = [mdo(Types,I) || I <- string:tokens(Str,". ")],
   fun(Ctxt) -> thread(Ctxt,Fs) end.
 
 thread(Ctxt,[])     -> Ctxt;
@@ -132,27 +132,28 @@ thread(Ctxt,[F|Fs]) -> thread(F(Ctxt),Fs).
 
 mdo(Types,I) ->
   case first(Types,I) of
-    {M,F} -> wrap2(M,F);
-    X     -> wrap1(X)
+    {M,F} -> wrap(M,F);
+    X     -> wrap(X)
   end.
 
-wrap1(X) ->
+wrap(X) ->
   fun(M) ->
       case M of
         ""                 -> "";
         [{_,_}|_]          -> proplists:get_value(X,M);
         [_|_]              -> lists:nth(X,M);
-        _ when is_tuple(M) -> element(X,M)
+        _ when is_tuple(M) -> element(X,M);
+        _                  -> logg([{field,X},{struct,M}]),""
       end
   end.
 
-wrap2(ets,T) ->
+wrap(ets,T) ->
   fun(K)->
       try element(2,hd(ets:lookup(T,K)))
       catch _:_ -> ""
       end
   end;
-wrap2(M,F) ->
+wrap(M,F) ->
   fun(V)->
       try M:F(V)
       catch _:_ -> ""
@@ -187,6 +188,7 @@ test(_,eof,eof) -> ok;
 test(FD,Line,A) ->
   R = run(compile_mustache(Line),[]),
   try R = A
-  catch _:{badmatch,_} -> error_logger:error_report([{got,R},{expected,A}])
+  catch _:{badmatch,_} -> logg([{got,R},{expected,A}])
   end,
   test(FD,io:get_line(FD,''),io:get_line(FD,'')).
+
