@@ -159,7 +159,7 @@ wrap(X) ->
         [{K,_}|_]                -> proplists:get_value(cast(X,K),Ctxt);
         [_|_]                    -> lists:nth(X,Ctxt);
         _ when is_tuple(Ctxt)    -> element(X,Ctxt);
-        _ when is_function(Ctxt) -> Ctxt(list_to_atom(to_str(X)));
+        _ when is_function(Ctxt) -> Ctxt(X);
         _                        -> logg([{field,X},{ctxt,Ctxt}]),""
       end
   end.
