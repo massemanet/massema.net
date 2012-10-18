@@ -2,10 +2,9 @@
   <title>massema.net</title>
   <body>
     Node: <tt>{{ ''.erlang:node }}</tt><p>
-    Current function:<tt>
+    Module: <tt>
       {{ ''.erlang:self.erlang:process_info.current_function.1 }}</tt><p>
-    Request:
-    <tt>{{ all }}</tt><p>
-    User agent: {{ parsed_header.user-agent }}
+    Request: <tt>{{ all }}</tt><p>
+    User agent: <tt>{{ parsed_header.user-agent }}</tt>
   </body>
 </html>
