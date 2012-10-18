@@ -3,6 +3,6 @@
   {vsn, "0.1"},
   {modules,[mm]},
   {registered, []},
-  {applications, [kernel,stdlib,inets]},
+  {applications, [kernel,stdlib,inets,egeoip]},
   {env, []}
  ]}.

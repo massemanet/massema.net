@@ -12,9 +12,11 @@
          ,do/2]).
 
 start() ->
-  inets:stop(),
-  inets:start(),
+  [egeoip:start() || not is_started(egeoip)],
+  [inets:start() || not is_started(inets)],
   inets:start(httpd,conf()).
+
+is_started(A) -> lists:member(A,[X||{X,_,_}<-application:which_applications()]).
 
 logg(E) -> error_logger:error_report(E).
 

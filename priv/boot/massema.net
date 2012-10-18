@@ -25,7 +25,7 @@ export ITEM=massema.net
 export ITEM_STARTMOD=mm
 export ITEM_USER=masse
 export ITEM_GROUP=users
-export ITEM_LIBDIR=/home/$ITEM_USER/git/$ITEM/ebin
+export ITEM_LIBDIR=/home/$ITEM_USER/git/$ITEM
 export ITEM_LOGDIR=/var/log/$ITEM
 export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
 export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
@@ -37,12 +37,15 @@ chown $ITEM_USER:$ITEM_GROUP $ITEM_LOGDIR
 chown $ITEM_USER:$ITEM_GROUP $ITEM_BOOTLOG
 
 item_start() {
+    DEPS=$ITEM_LIBDIR/deps
+    [ -d $DEPS ] && for dep in $DEPS/* ; do PAS="$PAS -pa $dep/ebin" ; done
     $ERL  \
         -sname $SNAME \
         -setcookie $ITEM \
         -boot start_sasl \
         -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
-        -pa $ITEM_LIBDIR \
+        -pa $ITEM_LIBDIR/ebin \
+        $PAS \
         -run $ITEM_STARTMOD \
         -detached
 }
