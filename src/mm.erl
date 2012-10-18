@@ -139,9 +139,12 @@ mcompile(Str) ->
 thread(Ctxt,[])     -> to_str(Ctxt);
 thread(Ctxt,[F|Fs]) -> thread(F(Ctxt),Fs).
 
--define(is_string(S),is_integer(hd(S));S=:="").
-to_str(Str) when ?is_string(Str) -> Str;
-to_str(Term) -> io_lib:format("~p",[Term]).
+to_str(Term) ->
+  case lists:flatten(io_lib:format("~p",[Term])) of
+    "\""++Str -> lists:reverse(tl(lists:reverse(Str)));
+    "'"++Str  -> lists:reverse(tl(lists:reverse(Str)));
+    Str       -> Str
+  end.
 
 mdo(Types,I) ->
   case first(Types,I) of
@@ -153,10 +156,10 @@ wrap(X) ->
   fun(Ctxt) ->
       case Ctxt of
         ""                       -> "";
-        [{_,_}|_]                -> proplists:get_value(X,Ctxt);
+        [{K,_}|_]                -> proplists:get_value(cast(X,K),Ctxt);
         [_|_]                    -> lists:nth(X,Ctxt);
         _ when is_tuple(Ctxt)    -> element(X,Ctxt);
-        _ when is_function(Ctxt) -> Ctxt(X);
+        _ when is_function(Ctxt) -> Ctxt(list_to_atom(to_str(X)));
         _                        -> logg([{field,X},{ctxt,Ctxt}]),""
       end
   end.
@@ -177,6 +180,9 @@ wrap(M,F) ->
       catch _:_ -> ""
       end
   end.
+
+cast(X,K) when is_list(K) -> atom_to_list(X);
+cast(X,_) -> X.
 
 first([T|Ts],I) ->
   try T(I)
