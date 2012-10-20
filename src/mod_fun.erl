@@ -60,6 +60,10 @@ defer_response(#mod{data=Data}) ->
 %%%========================================================================   
 %% since the handler fun can send many chunks, or not used chunked
 %%  encoding at all,  we keep state while waiting.
+%% there are three states;
+%% init - no data received yet
+%% has_headers - we have received the headers, but not sent them
+%% sent_headers - we have received and sent headers.
 -record(s,{state=init,
            chunks=[],
            headers=[],
@@ -90,13 +94,16 @@ mod_get(ModRec,Key) ->
 loop({Pid,Ref},S,ModRec) ->
   Timeout = S#s.timeout,
   receive 
-    {Pid,Chunk}               -> loop({Pid,Ref},chunk(Chunk,S,ModRec),ModRec);
-    {'DOWN',Ref,_,Pid,defer}  -> ModRec#mod.data;
-    {'DOWN',Ref,_,Pid,normal} -> twohundred(ModRec,S);
-    {'DOWN',Ref,_,Pid,_}      -> case S#s.state of
-                                   sent_headers -> twohundred(ModRec,S);
-                                   _            -> fourofour(ModRec)
-                                 end
+    {Pid,Chunk} -> loop({Pid,Ref},chunk(Chunk,S,ModRec),ModRec);
+    {'DOWN',Ref,_,Pid,Reason} ->
+      case {S#s.state,Reason} of
+        {sent_headers,defer} -> twohundred(ModRec,S);
+        {_,defer}            -> ModRec#mod.data;
+        {init,normal}        -> fourofour(ModRec);
+        {_,normal}           -> twohundred(ModRec,S);
+        {sent_headers,_}     -> twohundred(ModRec,S);
+        {_,_}                -> fourofour(ModRec)
+      end
   after
     Timeout -> exit(Pid,kill), loop({Pid,Ref},S,ModRec)
   end.
