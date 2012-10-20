@@ -16,10 +16,6 @@ start() ->
   [inets:start() || not is_started(inets)],
   inets:start(httpd,conf()).
 
-is_started(A) -> lists:member(A,[X||{X,_,_}<-application:which_applications()]).
-
-logg(E) -> error_logger:error_report(E).
-
 %% we rely on the convention that the error log lives in ".../<app>/<logfile>"
 %% and static pages lives in priv_dir/static
 conf() ->
@@ -39,14 +35,18 @@ conf() ->
                 {"ico","image/x-icon"},
                 {"js","application/javascript"}]}].
 
-%% called from the server
+is_started(A) -> lists:member(A,[X||{X,_,_}<-application:which_applications()]).
+
+logg(E) -> error_logger:error_report(E).
+
+%% called from mod_fun. run in a fresh process.
 %% we can deliver the content in chunks by calling Act(Chunk).
 %% the first chunk can be headers; [{Key,Val}]
 %% if we don't want to handle the request, we do Act(defer)
 %% if we crash, there will be a 404
 do(Act,Req) ->
   case mustache_file(Req) of
-    "" -> Act(defer);
+    no -> Act(defer);
     MF -> Act(mustache(MF,Req))
   end.
 
@@ -58,7 +58,7 @@ mustache_file(Req) ->
     true = filelib:is_regular(MF),
     MF
   catch
-    _:_ -> ""
+    _:_ -> no
   end.
 
 mustache(MF,Req) ->

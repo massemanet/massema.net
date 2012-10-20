@@ -19,12 +19,6 @@ default(handler_timeout) -> 5000;
 default(handler_function) -> {"",""}.
 
 %% "ERLANG WEB SERVER API CALLBACK FUNCTIONS"
-do(ModRec) ->
-  case defer_response(ModRec) of
-    false-> {proceed,safe_handle(ModRec)};
-    true -> {proceed, ModRec#mod.data}
-  end.
-
 load("HandlerFunction " ++ HandlerFunction, []) ->
   try
     [Mod,Fun] = string:tokens(HandlerFunction," :"),
@@ -45,7 +39,14 @@ store({handler_function, {M,F}} = Conf, _) when is_atom(M),is_atom(F)->
 store({handler_integer, TO} = Conf, _) when is_integer(TO)->
   {ok, Conf}.
 
-%% we guarantee that handle/1 succeeds or we generate a 404.
+do(ModRec) ->
+  case defer_response(ModRec) of
+    false-> {proceed,safe_handle(ModRec)};
+    true -> {proceed, ModRec#mod.data}
+  end.
+
+%% we guarantee that handle/1 succeeds (in which case we send a 200) or we
+%% generate a 404.
 safe_handle(ModRec) ->
   try handle(ModRec)
   catch _:_ -> fourofour(ModRec)
@@ -92,21 +93,25 @@ loop({Pid,Ref},S,ModRec) ->
     {Pid,Chunk}               -> loop({Pid,Ref},chunk(Chunk,S,ModRec),ModRec);
     {'DOWN',Ref,_,Pid,defer}  -> ModRec#mod.data;
     {'DOWN',Ref,_,Pid,normal} -> twohundred(ModRec,S);
-    {'DOWN',Ref,_,Pid,_}      -> fourofour(ModRec)
+    {'DOWN',Ref,_,Pid,_}      -> case S#s.state of
+                                   sent_headers -> twohundred(ModRec,S);
+                                   _            -> fourofour(ModRec)
+                                 end
   after
     Timeout -> exit(Pid,kill), loop({Pid,Ref},S,ModRec)
   end.
 
-%% responses. either 200 or 404
-twohundred(ModRec,#s{state=has_headers,headers=H,chunks=B}=S) ->
-  send_unchunked(ModRec,H,B),
-  [{response, {already_sent, 200, S#s.length}} | ModRec#mod.data];
-twohundred(ModRec,#s{state=sent_headers}=S) ->
-  send_final_chunk(ModRec),
+%% all went well. response is 200.
+twohundred(ModRec,S) ->
+  case S#s.state of
+    has_headers -> send_unchunked(200,ModRec,S#s.headers,S#s.chunks);
+    sent_headers-> send_final_chunk(ModRec)
+  end,
   [{response, {already_sent, 200, S#s.length}} | ModRec#mod.data].
 
-fourofour(#mod{request_uri=URI,data=Data}) ->
-  [{status, {404, URI, "Not found"}} | Data].
+fourofour(ModRec) ->
+  Len = send_unchunked(404,ModRec,[{"connection","close"}],"nothing here."),
+  [{response,{already_sent,404,Len}} | ModRec#mod.data].
 
 %% got a chunk. it's either headers or a body part.
 %% if we don't get headers first time, use default headers.
@@ -164,7 +169,8 @@ send_chunk(ModRec,Chunk) ->
 send_final_chunk(ModRec) ->
   httpd_response:send_final_chunk(ModRec,false).
 
-send_unchunked(ModRec,Headers,Body) ->
+send_unchunked(Status,ModRec,Headers,Body) ->
   Len = integer_to_list(lists:flatlength(Body)),
   send_headers(false,ModRec,[{"content-length",Len} | Headers]),
-  httpd_response:send_body(ModRec,200,Body).
+  httpd_response:send_body(ModRec,Status,Body),
+  Len.
