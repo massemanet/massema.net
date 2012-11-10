@@ -58,7 +58,7 @@ beamgrep() {
 
 item_stop() {
     P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
-    sudo -u $ITEM_USER kill -KILL $P
+    [ -n "$P" ] && sudo -u $ITEM_USER kill -KILL $P
 }
 
 item_shell() {
