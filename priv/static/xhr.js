@@ -1,15 +1,16 @@
 function load() {
-  function mkhandler() {
-    return function(oEvent) {
-      console.log(this);
-      console.log(oEvent);
-    };
-  }
-  var url = "http://massema.net/erl/mm/do";
-  var oReq = new XMLHttpRequest();
-  oReq.open("GET", url, true);
-  oReq.onloadend = mkhandler(oReq);
-  //  oReq.onreadystatechange = mkhandler();
-  oReq.send(null);
+  function tickhandler(oEvent) {
+    document.getElementById('tick').innerHTML = oEvent.srcElement.response;
+    ajax();
+  };
+
+  function ajax() {
+    var oReq = new XMLHttpRequest();
+    oReq.open("GET", "tick", true);
+    oReq.onloadend = tickhandler;
+    oReq.send(null);
+  };
+
+  ajax();
 }
 window.onload = load;

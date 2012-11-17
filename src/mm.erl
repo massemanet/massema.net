@@ -49,11 +49,27 @@ logg(E) -> error_logger:error_report(E).
 do(Act,Req) ->
   case {is_tick(Req),is_mustache_file(Req)} of
     {no,no} -> Act(defer);
+    {yes,no}-> Act(ticker());
     {no,MF} -> Act(mustache(MF,Req))
   end.
 
 is_tick(Req) ->
-  no.
+  try
+    "/tick" = Req(request_uri),
+    "GET" = Req(method),
+    yes
+  catch 
+    _:_ -> no
+  end.
+
+ticker() ->
+  T=round(1000-element(3,now())/1000),
+  receive
+  after T ->
+      {{Y,Mo,D},{H,Mi,S}} = calendar:now_to_local_time(now()),
+      io_lib:fwrite("~w-~.2.0w-~.2.0w ~.2.0w:~.2.0w:~.2.0w",[Y,Mo,D,H,Mi,S])
+  end.
+
 %% if the request is for X.html, and X.mustache exists.
 is_mustache_file(Req) ->
   try
