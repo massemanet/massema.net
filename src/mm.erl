@@ -39,18 +39,23 @@ is_started(A) -> lists:member(A,[X||{X,_,_}<-application:which_applications()]).
 
 logg(E) -> error_logger:error_report(E).
 
-%% called from mod_fun. run in a fresh process.
+%% called from mod_fun. runs in a fresh process.
+%% Req is a dict with the request data from inets. It is implemented 
+%% as a fun/1, with the arg being the key in the dict.
 %% we can deliver the content in chunks by calling Act(Chunk).
 %% the first chunk can be headers; [{Key,Val}]
 %% if we don't want to handle the request, we do Act(defer)
-%% if we crash, there will be a 404
+%% if we crash, there will be a 404.
 do(Act,Req) ->
-  case mustache_file(Req) of
-    no -> Act(defer);
-    MF -> Act(mustache(MF,Req))
+  case {is_tick(Req),is_mustache_file(Req)} of
+    {no,no} -> Act(defer);
+    {no,MF} -> Act(mustache(MF,Req))
   end.
 
-mustache_file(Req) ->
+is_tick(Req) ->
+  no.
+%% if the request is for X.html, and X.mustache exists.
+is_mustache_file(Req) ->
   try
     {Name,_} = proplists:get_value(real_name,Req(data)),
     ".html" = filename:extension(Name),
