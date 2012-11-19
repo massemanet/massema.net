@@ -20,10 +20,22 @@
 # sudo invoke-rc.d massema.net start
 # sudo invoke-rc.d massema.net stop
 
+tryt() {
+    while [ 0 -lt $# ]; do
+        if 2>/dev/null touch $1/$$ && rm $1/$$; then
+            echo $1
+            return
+        else
+            shift
+        fi
+    done
+    exit -1
+}
+
 export ITEM=massema.net
 export ITEM_STARTMOD=mm
 export ITEM_USER=masse
-export ITEM_LOGDIR=/var/log/$ITEM
+export ITEM_LOGDIR=`tryt /var/log /tmp`/$ITEM
 export ITEM_LIBDIR=`eval echo ~$ITEM_USER`/git/$ITEM
 export ERL=`which erl`
 export ITEM_GROUP=`id -g $ITEM_USER`
@@ -75,6 +87,7 @@ out() {
 out "`date | tr ' ' '-'` "
 case "$1" in
     start)
+        out "logging to "$ITEM_LOGDIR
         out -n "starting $0..."
         item_start && out -n " started..."
         out " done."
