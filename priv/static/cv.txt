@@ -25,8 +25,8 @@ Skills
   Version Control Systems:
     mostly forgotten: cvs, clearcase, subversion
     daily use: git
-  Architectural skill:
-    Service Oriented, Asynchronous Message Passing.
+  Architectural Belief System:
+    Decoupling, Distribution, Asynchronous Message Passing.
 
 Experience
 
