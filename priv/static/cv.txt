@@ -18,6 +18,9 @@ Education
   Intermediate Energy Heavy-Ion Collisions"
 
 Skills
+  Operating Systems:
+    mostly forgotten: VMS, irix, solaris, hp-ux, ultrix
+    pretty good: linux (debian, centos), osx
   Programming languages:
     mostly forgotten: BASIC, FORTRAN, pascal, CERN languages
     pretty good: C, javascript
@@ -27,6 +30,8 @@ Skills
     daily use: git
   Architectural Belief System:
     Decoupling, Distribution, Asynchronous Message Passing.
+  Always Installed:
+    emacs >= 24, tmux, mosh
 
 Experience
 
