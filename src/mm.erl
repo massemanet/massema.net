@@ -40,7 +40,7 @@ is_started(A) -> lists:member(A,[X||{X,_,_}<-application:which_applications()]).
 logg(E) -> error_logger:error_report(E).
 
 %% called from mod_fun. runs in a fresh process.
-%% Req is a dict with the request data from inets. It is implemented 
+%% Req is a dict with the request data from inets. It is implemented
 %% as a fun/1, with the arg being the key in the dict.
 %% we can deliver the content in chunks by calling Act(Chunk).
 %% the first chunk can be headers; [{Key,Val}]
@@ -58,7 +58,7 @@ is_tick(Req) ->
     "/tick" = Req(request_uri),
     "GET" = Req(method),
     yes
-  catch 
+  catch
     _:_ -> no
   end.
 
@@ -150,7 +150,7 @@ mcompile(Str) ->
   case string:tokens(Str,". ") of  %% this will not support escaped "."
     [] ->
       fun(_) -> "" end;
-    [H|T] -> 
+    [H|T] ->
       F0 = case H of
              "''" -> fun(_) -> '' end;
              _ -> mdo(Types,H)
