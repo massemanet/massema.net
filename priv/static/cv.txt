@@ -17,6 +17,22 @@ Education
   The subject of my Ph.D. thesis was: "Reaction Mechanisms in
   Intermediate Energy Heavy-Ion Collisions"
 
+Skills
+  Operating Systems:
+    mostly forgotten: VMS, irix, solaris, hp-ux, ultrix
+    pretty good: linux (debian, centos), osx
+  Programming languages:
+    mostly forgotten: BASIC, FORTRAN, pascal, CERN languages
+    pretty good: C, javascript
+    daily use: Erlang, bash
+  Version Control Systems:
+    mostly forgotten: cvs, clearcase, subversion
+    daily use: git
+  Architectural Belief System:
+    Decoupling, Distribution, Asynchronous Message Passing.
+  Always Installed:
+    emacs >= 24, tmux, mosh
+
 Experience
 
   2012-present: Chief Architect, at Klarna, Sweden

@@ -63,7 +63,7 @@ is_tick(Req) ->
   end.
 
 ticker() ->
-  T=round(1000-element(3,now())/1000),
+  T = round(1000-element(3,now())/1000),
   receive
   after T ->
       {{Y,Mo,D},{H,Mi,S}} = calendar:now_to_local_time(now()),
