@@ -47,10 +47,11 @@ logg(E) -> error_logger:error_report(E).
 %% if we don't want to handle the request, we do Act(defer)
 %% if we crash, there will be a 404.
 do(Act,Req) ->
-  case {is_tick(Req),is_mustache_file(Req)} of
+  {Name,_} = proplists:get_value(real_name,Req(data)),
+  case {is_tick(Req),mustasch:is_file(Name)} of
     {no,no} -> Act(defer);
     {yes,no}-> Act(ticker());
-    {no,MF} -> Act(mustache:file(MF,Req))
+    {no,MF} -> Act(mustasch:file(MF,Req))
   end.
 
 is_tick(Req) ->
@@ -68,16 +69,4 @@ ticker() ->
   after T ->
       {{Y,Mo,D},{H,Mi,S}} = calendar:now_to_local_time(now()),
       io_lib:fwrite("~w-~.2.0w-~.2.0w ~.2.0w:~.2.0w:~.2.0w",[Y,Mo,D,H,Mi,S])
-  end.
-
-%% if the request is for X.html, and X.mustache exists.
-is_mustache_file(Req) ->
-  try
-    {Name,_} = proplists:get_value(real_name,Req(data)),
-    ".html" = filename:extension(Name),
-    MF = filename:rootname(Name,".html")++".mustache",
-    true = filelib:is_regular(MF),
-    MF
-  catch
-    _:_ -> no
   end.

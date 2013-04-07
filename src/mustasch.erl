@@ -6,10 +6,22 @@
 
 -module('mustasch').
 -author('mats cronqvist').
--export([file/2,
+-export([is_file/1,
+         file/2,
          run/2,
          test/0
         ]).
+
+%% if the request is for X.html, and X.mustasch exists.
+is_file(Name) ->
+  try
+    ".html" = filename:extension(Name),
+    MF = filename:rootname(Name,".html")++".mustasch",
+    true = filelib:is_regular(MF),
+    MF
+  catch
+    _:_ -> no
+  end.
 
 file(MustaschFile,Ctxt) ->
   run(generator(MustaschFile),Ctxt).
@@ -18,63 +30,49 @@ generator(MustaschFile) ->
   assert_ets(),
   {ok,Bin} = file:read_file(MustaschFile),
   Hash = erlang:md5(Bin),
-  case ets:lookup(mustasch,MustaschFile) of
+  case lookup_ets(MustaschFile) of
     [{_,Hash,Gen}] ->
       Gen;
     _ ->
       Gen = compile(Bin),
-      ets:insert(mustasch,{MustaschFile,Hash,Gen}),
+      insert_ets({MustaschFile,Hash,Gen}),
       Gen
   end.
 
 %% compile the mustasch file to internal form; a list, an alternating
 %% sequence of html fragments (string) and funs.
 
-compile_mustasch(Bin) ->
+compile(Bin) ->
   Str = binary_to_list(Bin),
-  try compile(parse(Str))
+  try comp(parse(lex(Str)))
   catch throw:R -> mm:logg(R),[Str]
   end.
 
-%% parse the mustasch file. Output is two lists; one list of html
-%% "fragments" (strings), and one list of mustasch "nuggets" (also strings).
-%% the nuggets will be compiled to funs in the next stage.
-%% 92 is the escape char, "\"
-%% "\" is forbidden in mustasch context. in html context, it escapes the next
-%% character. E.g. "{\{" will become "{{", and "\\" will become "\".
--record(ms,{state=off,cfrag="",frags=[],cnugg="",nuggs=[]}).
-parse(Str) ->
-  try parse(Str,#ms{})
-  catch throw:{R,Tail} -> mm:logg(syntax_error(R,Tail,Str)), {[Str],[]}
-  end.
+%% lexer
+lex(Str) ->
+  {ok,Toks,_} = mustasch_lexer:string(Str),
+  Toks.
 
-parse(   #ms{state=on}, [${|R])    -> throw({nesting,R});
-parse(   #ms{state=on}, [$}|R])    -> throw({nesting,R});
-parse(   #ms{state=on}, [])        -> throw({premature,""});
-parse(MS=#ms{state=on}, [$},$}|R]) -> parse(R,off(MS));
-parse(MS=#ms{state=on}, [C|R])     -> parse(R,MS#ms{cnugg=[C|MS#ms.cnugg]});
-parse(   #ms{state=off},[$},$}|R]) -> throw({terminator,R});
-parse(MS=#ms{state=off},[92,C|R])  -> parse(R,MS#ms{cfrag=[C|MS#ms.cfrag]});
-parse(MS=#ms{state=off},[${,${|R]) -> parse(R,on(MS));
-parse(MS=#ms{state=off},[C|R])     -> parse(R,MS#ms{cfrag=[C|MS#ms.cfrag]});
-parse(MS=#ms{state=off},[])        -> done(MS).
+%% parser
+parse(Toks) ->
+  pp(n,Toks,[[]]).
 
-on(MS) ->
-  MS#ms{frags=[lists:reverse(MS#ms.cfrag)|MS#ms.frags],cfrag=[],state=on}.
-off(MS) ->
-  MS#ms{nuggs=[lists:reverse(MS#ms.cnugg)|MS#ms.nuggs],cnugg=[],state=off}.
+pp(n,[{'.' ,_  }|Toks],A) -> pp(n,Toks,[["."|hd(A)]|tl(A)]);
+pp(n,[{':' ,_  }|Toks],A) -> pp(n,Toks,[[":"|hd(A)]|tl(A)]);
+pp(n,[{em  ,_,M}|Toks],A) -> pp(n,Toks,[[M|hd(A)]|tl(A)]);
+pp(n,[{dq  ,_,S}|Toks],A) -> pp(n,Toks,[["\"",S,"\""|hd(A)]|tl(A)]);
+pp(n,[{sq  ,_,S}|Toks],A) -> pp(n,Toks,[["'",S,"'"|hd(A)]|tl(A)]);
+pp(n,[{uq  ,_,S}|Toks],A) -> pp(n,Toks,[[S|hd(A)]|tl(A)]);
+pp(n,[{'{{',_  }|Toks],A) -> pp(m,Toks,[[],finalize(hd(A))|tl(A)]);
+pp(m,[{'}}',_  }|Toks],A) -> pp(n,Toks,A);
+pp(m,[_         |Toks],A) -> pp(m,Toks,A);
+pp(n,[               ],A) -> lists:reverse([finalize(hd(A))|tl(A)]).
 
-done(#ms{frags=Frags,cfrag=CF,nuggs=Nuggs}) ->
-  {lists:reverse([lists:reverse(CF)|Frags]),lists:reverse(Nuggs)}.
-
-syntax_error(R,Tail,Str) ->
-  {R,trim(Str,Tail)++"^"++trim(Tail)}.
-
-trim(Str,Tail) -> lists:reverse(trim(lists:reverse(Str)--Tail)).
-trim(Str) -> lists:sublist(Str,10).
+finalize(S) ->
+  lists:flatten(lists:reverse(S)).
 
 %% compile nuggets to funs
-compile({Fs,Ns}) ->
+comp({Fs,Ns}) ->
   compile(Fs,Ns).
 
 compile([],[]) -> [];
@@ -180,18 +178,28 @@ run([],_) -> "";
 run([F|R],Ctxt0) when is_function(F) -> F(Ctxt0)++run(R,Ctxt0);
 run([F|R],Ctxt0) -> F++run(R,Ctxt0).
 
-%% ad-hoc unit testing of the mustasch compiler
-test() ->
-  FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),
-  {ok,FD} = file:open(FN,[read]),
-  try test(FD,io:get_line(FD,''),io:get_line(FD,''))
-  after file:close(FD)
+%% ets helpers
+assert_ets() ->
+  case ets:info(mustasch,size) of
+    undefined -> ets:new(mustasch,[public,named_table,ordered_set]);
+    _ -> ok
   end.
 
-test(_,eof,eof) -> ok;
-test(FD,Line,A) ->
-  R = run(compile_mustasch(Line),[]),
-  try R = A
-  catch _:{badmatch,_} -> mm:logg([{got,R},{expected,A}])
-  end,
-  test(FD,io:get_line(FD,''),io:get_line(FD,'')).
+lookup_ets(K) ->
+  ets:lookup(mustasch,K).
+
+insert_ets(T) ->
+  ets:insert(mustasch,T).
+
+%% ad-hoc unit testing of the mustasch compiler
+test() ->
+  [test(I) || I <- [lexer,parser]].
+
+test(lexer) -> lex(tf());
+test(parser)-> parse(lex(tf())).
+
+tf() ->
+  FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),
+  {ok,Bin} = file:read_file(FN),
+  binary_to_list(Bin).
+
