@@ -63,13 +63,16 @@ pp(n,[{em  ,_,M}|Toks],A) -> pp(n,Toks,[[M|hd(A)]|tl(A)]);
 pp(n,[{dq  ,_,S}|Toks],A) -> pp(n,Toks,[["\"",S,"\""|hd(A)]|tl(A)]);
 pp(n,[{sq  ,_,S}|Toks],A) -> pp(n,Toks,[["'",S,"'"|hd(A)]|tl(A)]);
 pp(n,[{uq  ,_,S}|Toks],A) -> pp(n,Toks,[[S|hd(A)]|tl(A)]);
-pp(n,[{'{{',_  }|Toks],A) -> pp(m,Toks,[[],finalize(hd(A))|tl(A)]);
-pp(m,[{'}}',_  }|Toks],A) -> pp(n,Toks,A);
-pp(m,[_         |Toks],A) -> pp(m,Toks,A);
-pp(n,[               ],A) -> lists:reverse([finalize(hd(A))|tl(A)]).
+pp(n,[{'{{',_  }|Toks],A) -> pp(m,Toks,[[],finalize_str(hd(A))|tl(A)]);
+pp(m,[{'}}',_  }|Toks],A) -> pp(n,Toks,[[],finalize_nug(hd(A))|tl(A)]);
+pp(m,[T         |Toks],A) -> pp(m,Toks,[[T|hd(A)]|tl(A)]);
+pp(n,[               ],A) -> lists:reverse([finalize_str(hd(A))|tl(A)]).
 
-finalize(S) ->
+finalize_str(S) ->
   lists:flatten(lists:reverse(S)).
+
+finalize_nug(S) ->
+  lists:reverse(S).
 
 %% compile nuggets to funs
 comp({Fs,Ns}) ->
