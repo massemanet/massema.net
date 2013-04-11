@@ -3,7 +3,7 @@ Terminals 'uq' 'dq' 'sq' 'em' '{{' '}}' '.' ':'.
 Rootsymbol doc.
 
 doc -> string                      : ['$1'].
-doc -> doc '{{' nugget '}}' string : '$1' ++ ['$3'] ++ ['$5'].
+doc -> doc '{{' nugget '}}' string : '$1' ++ [{'$3'}] ++ ['$5'].
 
 string -> '$empty'    : [].
 string -> string 'uq' : '$1' ++ val('$2').
@@ -13,7 +13,7 @@ string -> string 'em' : '$1' ++ val('$2').
 string -> string '.'  : '$1' ++ [$.].
 string -> string ':'  : '$1' ++ [$:].
 
-nugget -> '$empty'             : [].
+nugget -> '$empty'             : [nil].
 nugget -> subnugget            : ['$1'].
 nugget -> nugget '.' subnugget : '$1' ++ ['$3'].
 
