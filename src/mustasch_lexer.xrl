@@ -16,6 +16,8 @@ OM = {
 
 CM = }
 
+WS = ([\000-\s])
+
 Rules.
 
 ({UQ}+|{OM}[^{OM}]|{CM}[^{CM}]|\\[^{OM}{CM}])+ :
@@ -33,10 +35,10 @@ Rules.
 : :
   {token,{':',TokenLine}}.
 
-{OM}{OM} :
+{OM}{OM}{WS}* :
   {token,{'{{',TokenLine}}.
 
-{CM}{CM} :
+{WS}*{CM}{CM} :
   {token,{'}}',TokenLine}}.
 
 {EM} :

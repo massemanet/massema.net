@@ -71,8 +71,8 @@ pp(n,[               ],A) -> lists:reverse([finalize_str(hd(A))|tl(A)]).
 finalize_str(S) ->
   lists:flatten(lists:reverse(S)).
 
-finalize_nug(S) ->
-  lists:reverse(S).
+finalize_nug(Toks) ->
+  lists:reverse(Toks).
 
 %% compile nuggets to funs
 comp({Fs,Ns}) ->
@@ -199,7 +199,7 @@ test() ->
   [test(I) || I <- [lexer,parser]].
 
 test(lexer) -> lex(tf());
-test(parser)-> parse(lex(tf())).
+test(parser)-> mustasch_parser:parse(lex(tf())).
 
 tf() ->
   FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),
