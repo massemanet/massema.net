@@ -17,13 +17,19 @@ nugget -> '$empty'             : [].
 nugget -> subnugget            : ['$1'].
 nugget -> nugget '.' subnugget : '$1' ++ ['$3'].
 
-subnugget -> atom ':' atom : {'$1','$2'}.
+subnugget -> atom ':' atom : {'$1','$3'}.
 subnugget -> atom          : '$1'.
 subnugget -> 'dq'          : [$"] ++ val('$1') ++ [$"].
 
-atom -> 'uq' : list_to_atom(val('$1')).
+atom -> 'uq' : atom_or_int(val('$1')).
 atom -> 'sq' : list_to_atom(val('$1')).
 
 Erlang code.
 
 val({_,_,V}) -> V.
+
+atom_or_int(S) ->
+  T = string:strip(S),
+  try list_to_integer(T)
+  catch _:badarg -> list_to_atom(T)
+  end.

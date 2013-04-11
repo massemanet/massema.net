@@ -1,4 +1,4 @@
 I am an "example." Some 'text', some {{ ."markup".string:to_upper }}.
 I am: \{\{ .self().document:ing \}\}. Presumably.
-Seconds: {{.erlang:now.2.2}}.
+Minutes: {{.erlang:now.calendar:now_to_local_time.2.2}}.
 Client IP: {{ init_data.2.2 }}.
