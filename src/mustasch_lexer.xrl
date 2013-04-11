@@ -9,13 +9,9 @@
 Definitions.
 
 UQ = [^'"{}:\.\\]
-
 EM = (\\{|\\})
-
 OM = {
-
 CM = }
-
 WS = ([\000-\s])
 
 Rules.
