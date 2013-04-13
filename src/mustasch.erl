@@ -44,7 +44,7 @@ generator(MustaschFile) ->
 
 compile(Bin) ->
   Str = binary_to_list(Bin),
-  try comp(parse(lex(Str)))
+  try gen(parse(lex(Str)))
   catch throw:R -> mm:logg(R),[Str]
   end.
 
@@ -55,59 +55,25 @@ lex(Str) ->
 
 %% parser
 parse(Toks) ->
-  pp(n,Toks,[[]]).
+  {ok,P} = mustasch_parser:parse(Toks),
+  P.
 
-pp(n,[{'.' ,_  }|Toks],A) -> pp(n,Toks,[["."|hd(A)]|tl(A)]);
-pp(n,[{':' ,_  }|Toks],A) -> pp(n,Toks,[[":"|hd(A)]|tl(A)]);
-pp(n,[{em  ,_,M}|Toks],A) -> pp(n,Toks,[[M|hd(A)]|tl(A)]);
-pp(n,[{dq  ,_,S}|Toks],A) -> pp(n,Toks,[["\"",S,"\""|hd(A)]|tl(A)]);
-pp(n,[{sq  ,_,S}|Toks],A) -> pp(n,Toks,[["'",S,"'"|hd(A)]|tl(A)]);
-pp(n,[{uq  ,_,S}|Toks],A) -> pp(n,Toks,[[S|hd(A)]|tl(A)]);
-pp(n,[{'{{',_  }|Toks],A) -> pp(m,Toks,[[],finalize_str(hd(A))|tl(A)]);
-pp(m,[{'}}',_  }|Toks],A) -> pp(n,Toks,[[],finalize_nug(hd(A))|tl(A)]);
-pp(m,[T         |Toks],A) -> pp(m,Toks,[[T|hd(A)]|tl(A)]);
-pp(n,[               ],A) -> lists:reverse([finalize_str(hd(A))|tl(A)]).
+%% generate mustasch code (a list of fun/1)
+gen(Nuggs) ->
+  [mk_fun(N) || N <- Nuggs].
 
-finalize_str(S) ->
-  lists:flatten(lists:reverse(S)).
+mk_fun(N) when is_list(N) ->
+  fun(_) -> N end;
+mk_fun({N}) ->
+  [F0|Fs] = [wrap(SN) || SN <- N],
+  fun(Ctxt) -> thread(F0(Ctxt),Fs) end.
 
-finalize_nug(Toks) ->
-  lists:reverse(Toks).
-
-%% compile nuggets to funs
-comp({Fs,Ns}) ->
-  compile(Fs,Ns).
-
-compile([],[]) -> [];
-compile([F1|Frags],Nuggets) ->
-  [F1|cmp(Frags,Nuggets)].
-
-cmp([],[]) -> "";
-cmp([Frag|Frags],[Nugget|Nuggets]) ->
-  [mcompile(Nugget),Frag|cmp(Frags,Nuggets)].
-
-%% compile a mustasch nugget to a fun
-mcompile(Str) ->
-  case string:tokens(Str,". ") of  %% this will not support escaped "."
-    [] ->
-      fun(_) -> "" end;
-    SubNuggets ->
-      Types = types(),
-      [F0|Fs] = [wrap(first(Types,SN)) || SN <- SubNuggets],
-      fun(Ctxt) -> thread(F0(Ctxt),Fs) end
-  end.
-
-thread(Ctxt,[])     -> to_str(Ctxt);
+thread(Ctxt,[])     -> Ctxt;
 thread(Ctxt,[F|Fs]) -> thread(F(Ctxt),Fs).
 
-to_str(Term) ->
-  case lists:flatten(io_lib:format("~p",[Term])) of
-    "\""++Str -> lists:reverse(tl(lists:reverse(Str)));
-    "'"++Str  -> lists:reverse(tl(lists:reverse(Str)));
-    Str       -> Str
-  end.
-
-wrap({int,X}) ->
+wrap({}) ->
+  hmmm;
+wrap(X) when is_integer(X) ->
   fun(Ctxt) ->
       case Ctxt of
         [{_,_}|_]                -> proplists:get_value(X,Ctxt);
@@ -116,13 +82,13 @@ wrap({int,X}) ->
         _                        -> mm:logg([{field,X},{ctxt,Ctxt}]),""
       end
   end;
-wrap({func,{ets,T}}) ->
+wrap({ets,T}) ->
   fun(Ctxt)->
       try element(2,hd(ets:lookup(T,Ctxt)))
       catch _:_ -> mm:logg([{table,T},{ctxt,Ctxt}]),""
       end
   end;
-wrap({func,{M,F}}) ->
+wrap({M,F}) ->
   fun(Ctxt)->
       try
         case Ctxt of
@@ -132,18 +98,14 @@ wrap({func,{M,F}}) ->
       catch _:R -> mm:logg([{mf,{M,F}},{ctxt,Ctxt},{reason,R}]),""
       end
   end;
-wrap({null,null}) ->
-  fun(_Ctxt) ->
-      ''
-  end;
-wrap({string,S}) ->
+wrap(S) when is_list(S) ->
   fun(Ctxt) ->
       case Ctxt of
         [{_,_}|_] -> proplists:get_value(S,Ctxt);
         _         -> S
       end
   end;
-wrap({atom,A}) ->
+wrap(A) when is_atom(A) ->
   fun(Ctxt) ->
       case Ctxt of
         [{_,_}|_] -> proplists:get_value(A,Ctxt);
@@ -199,7 +161,7 @@ test() ->
   [test(I) || I <- [lexer,parser]].
 
 test(lexer) -> lex(tf());
-test(parser)-> mustasch_parser:parse(lex(tf())).
+test(parser)-> parse(lex(tf())).
 
 tf() ->
   FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),

@@ -13,7 +13,7 @@ string -> string 'em' : '$1' ++ val('$2').
 string -> string '.'  : '$1' ++ [$.].
 string -> string ':'  : '$1' ++ [$:].
 
-nugget -> '$empty'             : [nil].
+nugget -> '$empty'             : [{}].
 nugget -> subnugget            : ['$1'].
 nugget -> nugget '.' subnugget : '$1' ++ ['$3'].
 
