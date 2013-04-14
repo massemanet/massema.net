@@ -8,8 +8,7 @@
 -author('mats cronqvist').
 -export([is_file/1,
          file/2,
-         run/2,
-         test/0
+         test/0,test/1
         ]).
 
 %% if the request is for X.html, and X.mustasch exists.
