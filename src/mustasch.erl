@@ -75,17 +75,24 @@ thread(Ctxt,[F|Fs]) ->
   catch _:X -> mm:logg(X),""
   end.
 
--define(is_string(X), is_integer(hd(X))).
-assert_string(X) when ?is_string(X) -> X;
-assert_string(X) -> lists:flatten(io_lib:fwrite("~w",[X])).
+assert_string(X) ->
+  case is_string(X) of
+    true -> X;
+    false-> lists:flatten(io_lib:fwrite("~w",[X]))
+  end.
+
+-define(is_c(X),9=:=X orelse 10=:=X orelse 13=:=X orelse (31<X andalso X<256)).
+is_string([])                  -> true;
+is_string([C|R]) when ?is_c(C) -> is_string(R);
+is_string(_)                   -> false.
 
 wrap(X) when is_integer(X) ->
   fun(Ctxt) ->
       case Ctxt of
-        [{_,_}|_]                -> proplists:get_value(X,Ctxt);
-        [_|_]                    -> lists:nth(X,Ctxt);
-        _ when is_tuple(Ctxt)    -> element(X,Ctxt);
-        _                        -> throw([{field,X},{ctxt,Ctxt}])
+        [{_,_}|_]             -> proplists:get_value(X,Ctxt);
+        [_|_]                 -> lists:nth(X,Ctxt);
+        _ when is_tuple(Ctxt) -> element(X,Ctxt);
+        _                     -> throw([{field,X},{ctxt,Ctxt}])
       end
   end;
 wrap({ets,T}) ->
@@ -143,7 +150,7 @@ test() ->
 
 test(lexer) -> lex(tf());
 test(parser)-> parse(test(lexer));
-test(generator)-> run(gen(test(parser)),[{init_data,[a,{1,2,3},c]}]).
+test(generator)-> run(gen(test(parser)),[{init_data,[a,{1,[2],3},c]}]).
 
 tf() ->
   FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),
