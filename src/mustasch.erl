@@ -76,7 +76,8 @@ thread(Ctxt,[F|Fs]) ->
   catch _:X -> mm:logg(X),""
   end.
 
-assert_string(X) when is_list(X) -> X;
+-define(is_string(X), is_integer(hd(X))).
+assert_string(X) when ?is_string(X) -> X;
 assert_string(X) -> lists:flatten(io_lib:fwrite("~w",[X])).
 
 wrap(X) when is_integer(X) ->
