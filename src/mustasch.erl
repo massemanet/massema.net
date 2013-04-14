@@ -39,9 +39,7 @@ generator(MustaschFile) ->
       Gen
   end.
 
-%% compile the mustasch file to internal form; a list, an alternating
-%% sequence of html fragments (string) and funs.
-
+%% compile the mustasch file to internal form; a list of fun/1
 compile(Bin) ->
   Str = binary_to_list(Bin),
   try gen(parse(lex(Str)))
@@ -64,38 +62,46 @@ gen(Nuggs) ->
 
 mk_fun(N) when is_list(N) ->
   fun(_) -> N end;
+mk_fun({[{},{M,F}|N]}) ->
+  Fs = [wrap(SN) || SN <- N],
+  fun(_) -> thread(M:F(),Fs) end;
 mk_fun({N}) ->
   [F0|Fs] = [wrap(SN) || SN <- N],
   fun(Ctxt) -> thread(F0(Ctxt),Fs) end.
 
-thread(Ctxt,[])     -> Ctxt;
-thread(Ctxt,[F|Fs]) -> thread(F(Ctxt),Fs).
+thread(Ctxt,[])     ->
+  assert_string(Ctxt);
+thread(Ctxt,[F|Fs]) ->
+  try thread(F(Ctxt),Fs)
+  catch _:X -> mm:logg(X),""
+  end.
 
-wrap({}) ->
-  hmmm;
+assert_string(X) when is_list(X) -> X;
+assert_string(X) -> lists:flatten(io_lib:fwrite("~w",[X])).
+
 wrap(X) when is_integer(X) ->
   fun(Ctxt) ->
       case Ctxt of
         [{_,_}|_]                -> proplists:get_value(X,Ctxt);
         [_|_]                    -> lists:nth(X,Ctxt);
         _ when is_tuple(Ctxt)    -> element(X,Ctxt);
-        _                        -> mm:logg([{field,X},{ctxt,Ctxt}]),""
+        _                        -> throw([{field,X},{ctxt,Ctxt}])
       end
   end;
 wrap({ets,T}) ->
   fun(Ctxt)->
       try element(2,hd(ets:lookup(T,Ctxt)))
-      catch _:_ -> mm:logg([{table,T},{ctxt,Ctxt}]),""
+      catch _:_ -> throw([{table,T},{ctxt,Ctxt}])
       end
   end;
+wrap({}) ->
+  fun(_) ->
+      ""
+  end;
 wrap({M,F}) ->
-  fun(Ctxt)->
-      try
-        case Ctxt of
-          '' -> M:F();
-          _  -> M:F(Ctxt)
-        end
-      catch _:R -> mm:logg([{mf,{M,F}},{ctxt,Ctxt},{reason,R}]),""
+  fun(Ctxt) ->
+      try M:F(Ctxt)
+      catch _:R -> throw([{mf,{M,F}},{ctxt,Ctxt},{reason,R}]),""
       end
   end;
 wrap(S) when is_list(S) ->
@@ -113,35 +119,10 @@ wrap(A) when is_atom(A) ->
       end
   end.
 
-first([T|Ts],I) ->
-  try T(I)
-  catch _:_ -> first(Ts,I)
-  end.
-
-types() ->
-  [fun(I) -> {null  ,list_to_null(I)} end,
-   fun(I) -> {func  ,list_to_mf(I)} end,
-   fun(I) -> {string,list_to_string(I)} end,
-   fun(I) -> {int   ,list_to_integer(I)} end,
-   fun(I)->  {atom  ,list_to_atom(I)} end].
-
-list_to_null("''") ->
-  null.
-
-list_to_mf(I) ->
-  [M,F]=string:tokens(I,":"),
-  {list_to_atom(M),list_to_atom(F)}.
-
-list_to_string(I) ->
-  "\""++X = I,
-  "\""++S = lists:reverse(X),
-  lists:reverse(S).
-
 %% run a mustasch term.
 %% returns a string.
 run([],_) -> "";
-run([F|R],Ctxt0) when is_function(F) -> F(Ctxt0)++run(R,Ctxt0);
-run([F|R],Ctxt0) -> F++run(R,Ctxt0).
+run([F|R],Ctxt0) -> F(Ctxt0)++run(R,Ctxt0).
 
 %% ets helpers
 assert_ets() ->
@@ -158,13 +139,13 @@ insert_ets(T) ->
 
 %% ad-hoc unit testing of the mustasch compiler
 test() ->
-  [test(I) || I <- [lexer,parser]].
+  [test(I) || I <- [lexer,parser,generator]].
 
 test(lexer) -> lex(tf());
-test(parser)-> parse(lex(tf())).
+test(parser)-> parse(test(lexer));
+test(generator)-> run(gen(test(parser)),[{init_data,[a,{1,2,3},c]}]).
 
 tf() ->
   FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),
   {ok,Bin} = file:read_file(FN),
   binary_to_list(Bin).
-

@@ -19,7 +19,7 @@ nugget -> nugget '.' subnugget : '$1' ++ ['$3'].
 
 subnugget -> atom ':' atom : {'$1','$3'}.
 subnugget -> atom          : '$1'.
-subnugget -> 'dq'          : [$"] ++ val('$1') ++ [$"].
+subnugget -> 'dq'          : val('$1').
 
 atom -> 'uq' : atom_or_int(val('$1')).
 atom -> 'sq' : list_to_atom(val('$1')).
