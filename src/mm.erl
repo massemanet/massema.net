@@ -51,7 +51,7 @@ do(Act,Req) ->
   case {is_tick(Req),mustasch:is_file(Name)} of
     {no,no} -> Act(defer);
     {yes,no}-> Act(ticker());
-    {no,MF} -> Act(mustasch:file(MF,Req))
+    {no,MF} -> Act(mustasch:file(MF,Req(data)))
   end.
 
 is_tick(Req) ->
