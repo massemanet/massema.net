@@ -9,12 +9,10 @@
 Definitions.
 
 UQ = [^'"{}:\.\\]
-
 EM = (\\{|\\})
-
 OM = {
-
 CM = }
+WS = ([\000-\s])
 
 Rules.
 
@@ -33,10 +31,10 @@ Rules.
 : :
   {token,{':',TokenLine}}.
 
-{OM}{OM} :
+{OM}{OM}{WS}* :
   {token,{'{{',TokenLine}}.
 
-{CM}{CM} :
+{WS}*{CM}{CM} :
   {token,{'}}',TokenLine}}.
 
 {EM} :
