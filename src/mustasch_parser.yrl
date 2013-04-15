@@ -1,5 +1,5 @@
 Nonterminals doc string nugget subnugget atom.
-Terminals 'uq' 'dq' 'sq' 'em' '{{' '}}' '.' ':'.
+Terminals 'uq' 'dq' 'sq' '{{' '}}' '.' ':'.
 Rootsymbol doc.
 
 doc -> string                      : ['$1'].
@@ -9,7 +9,6 @@ string -> '$empty'    : [].
 string -> string 'uq' : '$1' ++ val('$2').
 string -> string 'dq' : '$1' ++ [$"] ++ val('$2') ++ [$"].
 string -> string 'sq' : '$1' ++ [$'] ++ val('$2') ++ [$'].
-string -> string 'em' : '$1' ++ val('$2').
 string -> string '.'  : '$1' ++ [$.].
 string -> string ':'  : '$1' ++ [$:].
 
