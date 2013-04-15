@@ -7,7 +7,7 @@
     Request: <tt>{{ lists:reverse }}</tt><p>
     User agent: <tt>{{ parsed_header."user-agent" }}</tt><p>
     Client IP: <tt>{{ init_data.2.2 }}</tt><p>
-    You\'re in: <tt>{{ init_data.2.2.egeoip:lookup.2.4 }}</tt><p>
-    uname: <tt>{{ "uname -a".os:cmd }}</tt>
+    You're in: <tt>{{ init_data.2.2.egeoip:lookup.2.4 }}</tt><p>
+    uname: <tt>{{ ."uname -a".os:cmd }}</tt>
   </body>
 </html>
