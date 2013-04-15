@@ -1,6 +1,7 @@
 % mustasch lexer grammar.
 % tokens are;
-% '{{', '}}', '.', ':': as themselves
+% '}}': end token
+% '.', ':': as themselves
 % em: escaped mustache ("\{", "\}")
 % sq: single quoted string
 % dq: double quoted string
@@ -8,15 +9,13 @@
 
 Definitions.
 
-UQ = [^'"{}:\.\\]
-EM = (\\{|\\})
-OM = {
+UQ = [^'"}:\.]
 CM = }
 WS = ([\000-\s])
 
 Rules.
 
-({UQ}+|{OM}[^{OM}]|{CM}[^{CM}]|\\[^{OM}{CM}])+ :
+{UQ}+ :
   {token,{uq,TokenLine,TokenChars}}.
 
 "([^"]|\\")*" :
@@ -31,14 +30,8 @@ Rules.
 : :
   {token,{':',TokenLine}}.
 
-{OM}{OM}{WS}* :
-  {token,{'{{',TokenLine}}.
-
 {WS}*{CM}{CM} :
-  {token,{'}}',TokenLine}}.
-
-{EM} :
-  {token,{em,TokenLine,tl(TokenChars)}}.
+  {end_token,{'}}',TokenLine}}.
 
 Erlang code.
 

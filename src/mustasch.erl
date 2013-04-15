@@ -47,8 +47,19 @@ compile(Bin) ->
 
 %% lexer
 lex(Str) ->
-  {ok,Toks,_} = mustasch_lexer:string(Str),
-  Toks.
+  case split_at_mustasch(Str,[]) of
+    {S,""} -> [{uq,99,lists:reverse(S)}];
+    {S,M} ->
+      {done,{ok,Toks,_},C} = mustasch_lexer:tokens([],M),
+      [{uq,0,lists:reverse(S)},{'{{',0}|Toks]++lex(C)
+  end.
+
+split_at_mustasch(Str,B) ->
+  case Str of
+    "{{"++M -> {B,string:strip(M,left)};
+    []      -> {B,""};
+    [H|T]   -> split_at_mustasch(T,[H|B])
+  end.
 
 %% parser
 parse(Toks) ->
