@@ -78,7 +78,7 @@ thread(Ctxt,[F|Fs]) ->
 assert_string(X) ->
   case is_string(X) of
     true -> X;
-    false-> lists:flatten(io_lib:fwrite("~w",[X]))
+    false-> lists:flatten(io_lib:fwrite("~p",[X]))
   end.
 
 -define(is_c(X),9=:=X orelse 10=:=X orelse 13=:=X orelse (31<X andalso X<256)).
