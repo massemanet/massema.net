@@ -35,7 +35,8 @@ conf() ->
                 {"ico","image/x-icon"},
                 {"js","application/javascript"}]}].
 
-is_started(A) -> lists:member(A,[X||{X,_,_}<-application:which_applications()]).
+is_started(A) ->
+  lists:member(A,[X || {X,_,_} <- application:which_applications()]).
 
 logg(E) -> error_logger:error_report(E).
 
