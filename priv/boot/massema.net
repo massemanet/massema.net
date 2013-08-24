@@ -80,10 +80,14 @@ item_stop() {
 }
 
 item_shell() {
+    item_remsh
+}
+
+item_remsh() {
     HOST=`echo $HOSTNAME | cut -f1 -d"."`
     sudo -u $ITEM_USER \
         $ITEM_ERL \
-        -sname $$ -remsh ${ITEM_SNAME}@${HOST} -setcookie $ITEM
+        -sname $$ -remsh ${ITEM_SNAME}@${HOST} -setcookie $ITEM $*
 }
 
 out() {
@@ -136,6 +140,8 @@ case "$1" in
         item_shell || out -n "Failed... "
         out "detaching $USER - $$."
         ;;
+    reload-geodata)
+        item_remsh  -run egeoip reload -run init stop
     *)
         exit 1
 esac
