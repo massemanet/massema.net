@@ -141,7 +141,7 @@ case "$1" in
         out "detaching $USER - $$."
         ;;
     reload-geodata)
-        item_remsh  -run egeoip reload -run init stop
+        $ITEM_LIBDIR/priv/bin/reload_geodata $ITEM $ITEM_SNAME
         ;;
     *)
         exit 1
