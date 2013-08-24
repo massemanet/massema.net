@@ -142,6 +142,7 @@ case "$1" in
         ;;
     reload-geodata)
         item_remsh  -run egeoip reload -run init stop
+        ;;
     *)
         exit 1
 esac
