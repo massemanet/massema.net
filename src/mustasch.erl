@@ -160,10 +160,11 @@ test() ->
   [test(I) || I <- [lexer,parser,generator]].
 
 test(lexer) -> lex(tf());
+
 test(parser)-> parse(test(lexer));
 test(generator)-> run(gen(test(parser)),[{init_data,[a,{1,[2],3},c]}]).
 
 tf() ->
-  FN = filename:join([code:priv_dir(massema.net),test,test.mustasch]),
+  FN = filename:join([code:priv_dir('massema.net'),test,'test.mustasch']),
   {ok,Bin} = file:read_file(FN),
   binary_to_list(Bin).
