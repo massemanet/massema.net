@@ -1,4 +1,4 @@
-all: deps
+all:
 	./rebar compile
 
 deps: deps/egeoip

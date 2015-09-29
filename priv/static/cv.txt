@@ -20,24 +20,31 @@ Education
 Skills
   Operating Systems:
     mostly forgotten: VMS, irix, solaris, hp-ux, ultrix
-    pretty good: linux (debian, centos), osx
+    in daily use: linux (debian, centos), osx
   Programming languages:
-    mostly forgotten: BASIC, FORTRAN, pascal, CERN languages
-    pretty good: C, javascript
-    daily use: Erlang, bash
+    mostly forgotten: BASIC, FORTRAN, pascal, various CERN languages
+    up to date: C, javascript
+    in daily use: Erlang, bash
   Version Control Systems:
     mostly forgotten: cvs, clearcase, subversion
-    daily use: git
+    in daily use: git
   Architectural Belief System:
     Decoupling, Distribution, Asynchronous Message Passing.
   Always Installed:
-    emacs >= 24, tmux, mosh
+    emacs >= 24, tmux, xterm
 
 Experience
 
-  2012-present: Chief Architect, at Klarna, Sweden
+  2014-present: Senior Architect, at Klarna, Sweden
+    Protected the corporate revenue streams. My team made sure the cash cow
+    system stayed high-functioning. We paid off technical debt, mainly through
+    overload testing with intense profiling, judicious refactoring, and
+    introducing sensible deployment and testing pipelines.
+
+  2012-2013: Chief Architect, at Klarna, Sweden
     Responsible for the migration of the Klarna legacy business system from
     a monolithic Erlang application to system of loosely coupled services.
+    Mostly successful, but the company decided to go down the Java route.
 
   2011: Manager, Core Development, at Klarna, Sweden
     Managed a team of ~10 developers (mostly Erlang). Main task was to
@@ -53,7 +60,6 @@ Experience
     Erlang.) Profiling and debugging.
 
   2003-2007: System Expert at Ericsson Telecom, Hungary
-
     Implemented a suite of profiling and troubleshooting tools for
     Erlang applications. Enabled us to identify numerous bottlenecks,
     significantly improving performance.
@@ -63,14 +69,12 @@ Experience
     is generated from the GTK header files.
 
   1997-2003: System expert at Ericsson Telecom, Sweden
-
     Implemented the first distributed version of our product. Allowed
     us to scale out the application on multiple CPUs.
     Invented the first serious Erlang troubleshooting tools. Still in
     heavy in-house use.
 
   1993-1997: Post Doctoral Researcher at Lawrence Berkeley Laboratory, CA, USA
-
     Wrote major pieces of the software for the E896 experiment at Brookhaven
     National Lab, including the on-line monitoring system, the event
     visualization, and most of the track reconstruction.
@@ -79,7 +83,6 @@ Experience
     experiment at Lawrence Berkeley Lab.
 
   1986-1992: Graduate school at the University of Goteborg, Sweden
-
     Wrote many pieces of code for several experiments, mostly related to
     data analysis and visualization.
 
@@ -105,6 +108,6 @@ Open Source Programs
       eper - a set of tools for performance tuning Erlang applications
 
      At github.com/marijnh/CodeMirror/tree/master/mode/erlang
-      An erlang mode for CodeMirror (a code editor javascript component.)
+      An erlang mode for CodeMirror (a code editor javascript component)
 
     Contributed to distel (Erlang-Emacs interface) and Yaws (Erlang web server)

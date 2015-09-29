@@ -39,7 +39,7 @@ export ITEM_USER=masse
 export ITEM_LOGDIR=`tryt /var/log /tmp`/$ITEM
 export ITEM_LIBDIR=`eval echo ~$ITEM_USER`/git/$ITEM
 export ITEM_DEPS="$ITEM_LIBDIR/deps/*"
-export ITEM_ERL=/opt/bin/erl
+export ITEM_ERL=`which erl` #/opt/bin/erl
 export ITEM_GROUP=`id -gn $ITEM_USER`
 export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
 export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
@@ -144,5 +144,6 @@ case "$1" in
         $ITEM_LIBDIR/priv/bin/reload_geodata $ITEM $ITEM_SNAME
         ;;
     *)
+        echo "argument '"$1"' unknown."
         exit 1
 esac
