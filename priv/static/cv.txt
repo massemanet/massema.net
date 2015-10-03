@@ -44,7 +44,8 @@ Experience
   2012-2013: Chief Architect, at Klarna, Sweden
     Responsible for the migration of the Klarna legacy business system from
     a monolithic Erlang application to system of loosely coupled services.
-    Mostly successful, but the company decided to go down the Java route.
+    Mostly successful, but the company decided to go down the Enterprise Java
+    route.
 
   2011: Manager, Core Development, at Klarna, Sweden
     Managed a team of ~10 developers (mostly Erlang). Main task was to
