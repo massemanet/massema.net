@@ -1,6 +1,6 @@
 function load() {
   function tickhandler(oEvent) {
-    document.getElementById('tick').innerHTML = oEvent.srcElement.response;
+    document.getElementById('tick').innerHTML = oEvent.target.response;
     ajax();
   };
 
