@@ -3,7 +3,7 @@ Curriculum Vitae
 Name: Mats Cronqvist
 Phone (mobile): +46 72 7285755
 E-mail: mats@cronqvi.st
-URL: http://www.cronqvi.st/masse
+URL: http://massema.net
 Based in: Stockholm, Sweden (GMT +1)
 Languages: Fluent in Swedish and English, basic German
 Passport: EU (Swedish)
@@ -35,7 +35,11 @@ Skills
 
 Experience
 
-  2014-present: Senior Architect, at Klarna, Sweden
+  2016-present: Architect at Campanja, Sweden
+    Developing and architecting in a Campanja's heterogeneous system. Micro-
+    services running under kubernetes in AWS. 
+
+  2014-2016: Senior Architect, at Klarna, Sweden
     Protected the corporate revenue streams. My team made sure the cash cow
     system stayed high-functioning. We paid off technical debt, mainly through
     overload testing with intense profiling, judicious refactoring, and
