@@ -37,7 +37,7 @@ Experience
 
   2016-present: Architect at Campanja, Sweden
     Developing and architecting in a Campanja's heterogeneous system. Micro-
-    services running under kubernetes in AWS. 
+    services running under kubernetes in AWS.
 
   2014-2016: Senior Architect, at Klarna, Sweden
     Protected the corporate revenue streams. My team made sure the cash cow
@@ -111,8 +111,9 @@ Open Source Programs
       gtknode - an Erlang GTK binding
       inotify - an Erlang binding to the Linux inotify API
       eper - a set of tools for performance tuning Erlang applications
+      ...
 
      At github.com/marijnh/CodeMirror/tree/master/mode/erlang
       An erlang mode for CodeMirror (a code editor javascript component)
 
-    Contributed to distel (Erlang-Emacs interface) and Yaws (Erlang web server)
+     Maintains distel (Erlang-Emacs interface)
