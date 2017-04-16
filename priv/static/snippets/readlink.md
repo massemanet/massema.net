@@ -1,3 +1,6 @@
+Link nerdery
+============
+
 I upgraded my trusty Raspberry Pi to raspbian jessie. Alas, a bit of a snag
 manifested itself when I realized the ssh server had not started. After some
 swearing I realized the "Illegal instruction" error message I saw meant that I
