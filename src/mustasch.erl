@@ -7,9 +7,10 @@
 -module('mustasch').
 -author('mats cronqvist').
 -export([is_file/1,
-         file/2,
-         test/0,test/1
-        ]).
+         file/2]).
+
+%% for testing
+-export([lex/1, parse/1, gen/1, run/2]).
 
 %% if the request is for X.html, and X.mustasch exists.
 is_file(Name) ->
@@ -42,7 +43,7 @@ generator(MustaschFile) ->
 compile(Bin) ->
   Str = binary_to_list(Bin),
   try gen(parse(lex(Str)))
-  catch throw:R -> mm:logg(R),[Str]
+  catch throw:R -> error_logger:error_report(R),[Str]
   end.
 
 %% lexer
@@ -83,7 +84,7 @@ thread(Ctxt,[])     ->
   assert_string(Ctxt);
 thread(Ctxt,[F|Fs]) ->
   try thread(F(Ctxt),Fs)
-  catch _:X -> mm:logg(X),""
+  catch _:X -> error_logger:error_report(X),""
   end.
 
 assert_string(X) ->
@@ -154,17 +155,3 @@ lookup_ets(K) ->
 
 insert_ets(T) ->
   ets:insert(mustasch,T).
-
-%% ad-hoc unit testing of the mustasch compiler
-test() ->
-  [test(I) || I <- [lexer,parser,generator]].
-
-test(lexer) -> lex(tf());
-
-test(parser)-> parse(test(lexer));
-test(generator)-> run(gen(test(parser)),[{init_data,[a,{1,[2],3},c]}]).
-
-tf() ->
-  FN = filename:join([code:priv_dir('massema.net'),test,'test.mustasch']),
-  {ok,Bin} = file:read_file(FN),
-  binary_to_list(Bin).
