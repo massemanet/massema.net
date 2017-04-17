@@ -7,6 +7,6 @@
     cowboy,
     markdown,
     egeoip]},
-  {env, []},
+  {env, [{root, "priv/static"}]},
   {mod, {mm_app, placeholder}}
  ]}.
