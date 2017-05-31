@@ -47,7 +47,7 @@ do_handle(#{method := Meth, path := Path, qs := QS}, State) ->
 
 can_ship(Path, #{root := Root}) ->
   try
-    Safer = filename:safe_relative_path(filename:join(Path)),
+    Safer = safe_relative_path(Path),
     {ok, F} = file:read_file(filename:join(Root, Safer)),
     {html, F}
   catch
@@ -74,3 +74,13 @@ synch() ->
   receive
   after T -> erlang:universaltime()
   end.
+
+safe_relative_path(Path) ->
+  safe_relative_path([binary_to_list(E) || E <- Path], []).
+
+safe_relative_path(["/"|_], _) -> unsafe;
+safe_relative_path([".."|_], []) -> unsafe;
+safe_relative_path([".."|R], [_|Acc]) -> safe_relative_path(R, Acc);
+safe_relative_path(["."|R], Acc) -> safe_relative_path(R, Acc);
+safe_relative_path([E|R], Acc) -> safe_relative_path(R, [E|Acc]);
+safe_relative_path([], Acc) -> filename:join(lists:reverse(Acc)).
