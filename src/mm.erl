@@ -7,8 +7,14 @@
 -module(mm).
 -author('mats cronqvist').
 
+%% API
+-export([start/0]).
+
 %% cowboy 1.1 handler
 -export([init/3, handle/2, terminate/3]).
+
+start() ->
+  application:ensure_all_started(mm).
 
 init({tcp, http}, Req, State) ->
   {ok, Req, State}.

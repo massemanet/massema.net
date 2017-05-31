@@ -37,9 +37,9 @@ export ITEM=massema.net
 export ITEM_STARTMOD=mm
 export ITEM_USER=masse
 export ITEM_LOGDIR=`tryt /var/log /tmp`/$ITEM
-export ITEM_LIBDIR=`eval echo ~$ITEM_USER`/git/$ITEM
-export ITEM_DEPS="$ITEM_LIBDIR/deps/*"
-export ITEM_ERL=`which erl` #/opt/bin/erl
+export ITEM_ROOT=`eval echo ~$ITEM_USER`/git/$ITEM
+export ITEM_LIBS="$ITEM_ROOT/_build/default/lib/*"
+export ITEM_ERL=`which erl`
 export ITEM_GROUP=`id -gn $ITEM_USER`
 export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
 export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
@@ -58,8 +58,8 @@ beamgrep() {
 item_start() {
     P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
     [ -n "$P" ] && return
-    for dep in $ITEM_DEPS; do
-        [ -d $dep/ebin ] && PAS="$PAS -pa $dep/ebin"
+    for l in $ITEM_LIBS; do
+        [ -d $l/ebin ] && PAS="$PAS -pa $l/ebin"
     done
     [ -z "$ITEM_ERL" ] && echo "No erl in path" && exit -1
     sudo -u $ITEM_USER \
@@ -68,7 +68,6 @@ item_start() {
         -setcookie $ITEM \
         -boot start_sasl \
         -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
-        -pa $ITEM_LIBDIR/ebin \
         $PAS \
         -run $ITEM_STARTMOD \
         -detached
@@ -110,7 +109,7 @@ case "$1" in
             out "status: running"
             echo "pid       : $P"
             echo "logdir    : $ITEM_LOGDIR"
-            echo "libdir    : $ITEM_LIBDIR"
+            echo "rootdir   : $ITEM_ROOT"
             echo "erl       : $ITEM_ERL ("`otp_release`")"
             echo "running as: $ITEM_USER:$ITEM_GROUP"
         else
