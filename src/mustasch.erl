@@ -1,41 +1,31 @@
 %% -*- mode: erlang; erlang-indent-level: 2 -*-
-%%% Created : 11 Mar 2013 by mats cronqvist <masse@klarna.com>
-
-%% @doc
-%% @end
 
 -module('mustasch').
 -author('mats cronqvist').
--export([is_file/1,
-         file/2]).
+-export([run/1]).
 
 %% for testing
 -export([lex/1, parse/1, gen/1, run/2]).
 
-%% if the request is for X.html, and X.mustasch exists.
-is_file(Name) ->
-  try
-    ".html" = filename:extension(Name),
-    MF = filename:rootname(Name,".html")++".mustasch",
-    true = filelib:is_regular(MF),
-    MF
-  catch
-    _:_ -> no
-  end.
+%%-----------------------------------------------------------------------------
 
-file(MustaschFile,Ctxt) ->
-  run(generator(MustaschFile),Ctxt).
+run(Bin) ->
+  run(generator(Bin), []).
 
-generator(MustaschFile) ->
+run([],_) -> "";
+run([F|R],Ctxt0) -> F(Ctxt0)++run(R,Ctxt0).
+
+%%-----------------------------------------------------------------------------
+
+generator(Bin) ->
   assert_ets(),
-  {ok,Bin} = file:read_file(MustaschFile),
   Hash = erlang:md5(Bin),
-  case lookup_ets(MustaschFile) of
-    [{_,Hash,Gen}] ->
+  case lookup_ets(Hash) of
+    [{Hash,Gen}] ->
       Gen;
     _ ->
       Gen = compile(Bin),
-      insert_ets({MustaschFile,Hash,Gen}),
+      insert_ets({Hash,Gen}),
       Gen
   end.
 
@@ -137,11 +127,6 @@ wrap(A) when is_atom(A) ->
         _         -> A
       end
   end.
-
-%% run a mustasch term.
-%% returns a string.
-run([],_) -> "";
-run([F|R],Ctxt0) -> F(Ctxt0)++run(R,Ctxt0).
 
 %% ets helpers
 assert_ets() ->

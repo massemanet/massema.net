@@ -40,7 +40,7 @@ do_handle(#{method := <<"GET">>, path := [<<"tick">>], qs := []}, State) ->
 do_handle(#{method := <<"GET">>, path := Path, qs := []}, State) ->
   case can_ship(Path, State) of
     {ContentType, Body} -> ship(200, State, ContentType, Body);
-    undefined -> ship(404, State, html, a404("GET", Path, []))
+    _ -> ship(404, State, html, a404("GET", Path, []))
   end;
 do_handle(#{method := Meth, path := Path, qs := QS}, State) ->
   ship(404, State, html, a404(Meth, Path, QS)).
@@ -49,25 +49,36 @@ can_ship(Path, #{root := Root}) ->
   try
     Safer = safe_relative_path(Path),
     {ok, F} = file:read_file(filename:join(Root, Safer)),
-    {html, F}
+    case extension(Safer) of
+      "html" -> {html, mustasch:run(F)};
+      "md"   -> {html, markdown:conv(binary_to_list(F))};
+      "txt"  -> {text, F};
+      "js"   -> {js, F};
+      "css"  -> {css, F};
+      "ico"  -> {ico, F};
+      E      -> error_logger:error_report([{error, E}, {path, Path}])
+    end
   catch
-    _:_ -> undefined
+    _:R -> error_logger:error_report([{fail, R}, {path, Path}])
   end.
 
 a404(Meth, Path, QS) ->
   ["<h3>I'm confused; this doesn't make sense to me:</h3><p>",
-   Meth, $:, lists:join($,,Path), $:, [[${, K, $,, V, $}] || {K, V} <- QS],
+   Meth, $:, lists:join($, , Path), $:, [[${, K, $, , V, $}] || {K, V} <- QS],
    "<p>I'm just a raspberry pi :<"].
 
 ship(Status, State, ContentType, Body) ->
   {Status, State, content_type(ContentType), Body}.
 
 content_type(text) -> [{<<"content-type">>, <<"text/plain">>}];
-content_type(html) -> [{<<"content-type">>, <<"text/html">>}].
+content_type(html) -> [{<<"content-type">>, <<"text/html">>}];
+content_type(js)   -> [{<<"content-type">>, <<"application/javascript">>}];
+content_type(css)  -> [{<<"content-type">>, <<"text/css">>}];
+content_type(ico)  -> [{<<"content-type">>, <<"image/ico">>}].
 
 synched_ts() ->
   {{Y, Mo, D}, {H, Mi, S}} = synch(),
-  io_lib:fwrite("~w-~.2.0w-~.2.0w ~.2.0w:~.2.0w:~.2.0w",[Y, Mo, D, H, Mi, S]).
+  io_lib:fwrite("~w-~.2.0w-~.2.0w ~.2.0w:~.2.0w:~.2.0w", [Y, Mo, D, H, Mi, S]).
 
 synch() ->
   T = round(1000-element(3, erlang:timestamp())/1000),
@@ -78,9 +89,16 @@ synch() ->
 safe_relative_path(Path) ->
   safe_relative_path([binary_to_list(E) || E <- Path], []).
 
-safe_relative_path(["/"|_], _) -> unsafe;
-safe_relative_path([".."|_], []) -> unsafe;
+safe_relative_path(["/"|_], _)        -> unsafe;
+safe_relative_path([".."|_], [])      -> unsafe;
 safe_relative_path([".."|R], [_|Acc]) -> safe_relative_path(R, Acc);
-safe_relative_path(["."|R], Acc) -> safe_relative_path(R, Acc);
-safe_relative_path([E|R], Acc) -> safe_relative_path(R, [E|Acc]);
-safe_relative_path([], Acc) -> filename:join(lists:reverse(Acc)).
+safe_relative_path(["."|R], Acc)      -> safe_relative_path(R, Acc);
+safe_relative_path([E|R], Acc)        -> safe_relative_path(R, [E|Acc]);
+safe_relative_path([], [])            -> "index.html";
+safe_relative_path([], Acc)           -> filename:join(lists:reverse(Acc)).
+
+extension(Path) ->
+  case string:tokens(Path, ".") of
+    [_] -> no_extension;
+    [_|R] -> string:join(R, ".")
+  end.
