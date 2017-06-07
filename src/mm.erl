@@ -74,7 +74,7 @@ content_type(text) -> [{<<"content-type">>, <<"text/plain">>}];
 content_type(html) -> [{<<"content-type">>, <<"text/html">>}];
 content_type(js)   -> [{<<"content-type">>, <<"application/javascript">>}];
 content_type(css)  -> [{<<"content-type">>, <<"text/css">>}];
-content_type(ico)  -> [{<<"content-type">>, <<"image/ico">>}].
+content_type(ico)  -> [{<<"content-type">>, <<"image/png">>}].
 
 synched_ts() ->
   {{Y, Mo, D}, {H, Mi, S}} = synch(),
