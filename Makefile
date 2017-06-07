@@ -1,6 +1,6 @@
 REBAR = ./rebar3
 
-.PHONY: all compile test clean
+.PHONY: all compile test clean upgrade
 .PHONY: test eunit xref dialyze
 .PHONY: release release_minor release_major release_patch
 
@@ -25,14 +25,17 @@ xref: all
 dialyze:
 	@$(REBAR) dialyzer
 
+upgrade:
+	@$(REBAR) upgrade
+
 release_major: test
-	./bin/release.sh major
+	./bin/release major
 
 release_minor: test
-	./bin/release.sh minor
+	./bin/release minor
 
 release_patch: test
-	./bin/release.sh patch
+	./bin/release patch
 
 release: relase_patch
 
