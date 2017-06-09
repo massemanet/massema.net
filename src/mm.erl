@@ -29,28 +29,34 @@ terminate(_Reason, _Req, _State) ->
   ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-req_info(Req0) ->
-  {Method, Req1} = cowboy_req:method(Req0),
-  {Path, Req2} = cowboy_req:path_info(Req1),
-  {QS, Req3} = cowboy_req:qs_vals(Req2),
-  {Req3, #{method => Method, path => Path, qs => QS}}.
+req_info(Req) ->
+  Items = [cookies, headers, host, method,
+          path_info, peer, port, qs_vals, url, version],
+  lists:foldl(fun req_info/2, {Req, #{}}, Items).
 
-do_handle(#{method := <<"GET">>, path := [<<"tick">>], qs := []}, State) ->
-  ship(200, State, text, synched_ts());
-do_handle(#{method := <<"GET">>, path := Path, qs := []}, State) ->
-  case can_ship(Path, State) of
-    {ContentType, Body} -> ship(200, State, ContentType, Body);
-    _ -> ship(404, State, html, a404("GET", Path, []))
-  end;
-do_handle(#{method := Meth, path := Path, qs := QS}, State) ->
-  ship(404, State, html, a404(Meth, Path, QS)).
+req_info(Item, {Req0, Acc}) ->
+  {Val, Req} = cowboy_req:Item(Req0),
+  {Req, Acc#{Item => Val}}.
 
-can_ship(Path, #{root := Root}) ->
+do_handle(Info, State) ->
+  case Info of
+    #{method := <<"GET">>, path_info := [<<"tick">>], qs_vals := []} ->
+      ship(200, State, text, synched_ts());
+    #{method := <<"GET">>, path_info := Path, qs_vals := []} ->
+      case can_ship(Path, Info, State) of
+        {ContentType, Body} -> ship(200, State, ContentType, Body);
+        _ -> ship(404, State, html, a404("GET", Path, []))
+      end;
+    #{method := Meth, path_info := Path, qs_vals := QS} ->
+      ship(404, State, html, a404(Meth, Path, QS))
+  end.
+
+can_ship(Path, Info, #{root := Root}) ->
   try
     Safer = safe_relative_path(Path),
     {ok, F} = file:read_file(filename:join(Root, Safer)),
     case extension(Safer) of
-      "html" -> {html, mustasch:run(F)};
+      "html" -> {html, mustasch:run(F, Info)};
       "md"   -> {html, markdown:conv(binary_to_list(F))};
       "txt"  -> {text, F};
       "js"   -> {js, F};
