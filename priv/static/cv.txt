@@ -8,7 +8,7 @@ Based in: Stockholm, Sweden (GMT +1)
 Languages: Fluent in Swedish and English, basic German
 Passport: EU (Swedish)
 Education: Ph.D. in Physics
-Professional Programming Experience: 20 years
+Professional Programming Experience: 30 years
 
 Education
   1992:	Ph.D. in Nuclear Physics from the University of Goteborg, Sweden
@@ -35,7 +35,10 @@ Skills
 
 Experience
 
-  2016-present: Architect at Campanja, Sweden
+  2017-present:
+    Acting Vice President of [24]7 Sweden office. Managed ~15 developers.
+
+2016-2017: Architect at Campanja, Sweden
     Developing and architecting in a Campanja's heterogeneous system. Micro-
     services running under kubernetes in AWS.
 
@@ -110,7 +113,7 @@ Open Source Programs
      At github.com/massemanet
       gtknode - an Erlang GTK binding
       inotify - an Erlang binding to the Linux inotify API
-      eper - a set of tools for performance tuning Erlang applications
+      redbug - a tracing debugger for Erlang
       ...
 
      At github.com/marijnh/CodeMirror/tree/master/mode/erlang
