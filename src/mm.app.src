@@ -1,6 +1,6 @@
 {application, mm,
  [{description, "massema.net"},
-  {vsn, "0.1"},
+  {vsn, "1.0.0"},
   {applications,
    [kernel,
     stdlib,
