@@ -38,7 +38,7 @@ export ITEM_STARTMOD=mm
 export ITEM_USER=masse
 export ITEM_LOGDIR=`tryt /var/log /tmp`/$ITEM
 export ITEM_ROOT=`eval echo ~$ITEM_USER`/git/$ITEM
-export ITEM_LIBS="$ITEM_ROOT/_build/default/lib/*"
+export ITEM_LIB="$ITEM_ROOT/_build/default/lib"
 export ITEM_ERL=`which erl`
 export ITEM_GROUP=`id -gn $ITEM_USER`
 export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
@@ -58,7 +58,7 @@ beamgrep() {
 item_start() {
     P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
     [ -n "$P" ] && return
-    for l in $ITEM_LIBS; do
+    for l in $ITEM_LIB/*; do
         [ -d $l/ebin ] && PAS="$PAS -pa $l/ebin"
     done
     [ -z "$ITEM_ERL" ] && echo "No erl in path" && exit -1
@@ -140,7 +140,7 @@ case "$1" in
         out "detaching $USER - $$."
         ;;
     reload-geodata)
-        $ITEM_LIBDIR/priv/bin/reload_geodata $ITEM $ITEM_SNAME
+        $ITEM_LIB/$ITEM_STARTMOD/priv/bin/reload_geodata $ITEM $ITEM_SNAME
         ;;
     *)
         echo "argument '"$1"' unknown."
