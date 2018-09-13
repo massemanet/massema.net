@@ -1,12 +1,12 @@
 Curriculum Vitae
 
-Name: Mats Cronqvist
-Phone (mobile): +46 72 7285755
-E-mail: mats@cronqvi.st
-URL: http://massema.net
-Based in: Stockholm, Sweden (GMT +1)
+Name:      Mats Cronqvist
+Phone      +46 72 7285755
+E-mail:    mats@cronqvi.st
+URL:       http://massema.net
+Based in:  Stockholm, Sweden (GMT +1)
 Languages: Fluent in Swedish and English, basic German
-Passport: EU (Swedish)
+Passport:  EU (Swedish)
 Education: Ph.D. in Physics
 Professional Programming Experience: 32 years
 
@@ -19,15 +19,15 @@ Education
 
 Skills
   Operating Systems:
+    in daily use: linux (debian, ubuntu), osx
     mostly forgotten: VMS, irix, solaris, hp-ux, ultrix
-    in daily use: linux (debian, centos), osx
   Programming languages:
+    in daily use: Erlang, bash, learning Julia
+    up to date: C, javascript
     mostly forgotten: BASIC, FORTRAN, pascal, various CERN languages
-    up to date: C, javascript, Julia
-    in daily use: Erlang, bash
   Version Control Systems:
-    mostly forgotten: cvs, clearcase, subversion
     in daily use: git
+    mostly forgotten: cvs, clearcase, subversion
   Architectural Belief System:
     Decoupling, Distribution, Asynchronous Message Passing
   Always Installed:
