@@ -2,8 +2,7 @@
   <title>massema.net</title>
   <body>
     Node: <tt>{{ .erlang:node }}</tt><p>
-    Module: <tt>
-      {{ .erlang:self.erlang:process_info.current_function.1 }}</tt><p>
+    Module: <tt>{{ .erlang:self.erlang:process_info.current_function.1 }}</tt><p>
     Request: <tt>{{ headers }}</tt><p>
     User agent: <tt>{{ headers. <<"user-agent">> }}</tt><p>
     Client IP: <tt>{{ peer.1 }}</tt><p>
