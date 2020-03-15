@@ -6,6 +6,7 @@
     stdlib,
     cowboy,
     mustasch,
+    redbug,
     egeoip]},
   {mod, {mm_app, placeholder}}
  ]}.
