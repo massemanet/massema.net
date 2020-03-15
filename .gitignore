@@ -6,3 +6,5 @@
 /rebar.lock
 /src/mustasch_parser.erl
 /src/mustasch_lexer.erl
+rebar3.crashdump
+erl_crash.dump

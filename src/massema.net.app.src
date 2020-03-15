@@ -1,4 +1,4 @@
-{application, mm,
+{application, 'massema.net',
  [{description, "massema.net"},
   {vsn, "1.0.0"},
   {applications,
@@ -6,6 +6,7 @@
     stdlib,
     cowboy,
     markdown,
+    mustasch,
     egeoip]},
   {mod, {mm_app, placeholder}}
  ]}.
