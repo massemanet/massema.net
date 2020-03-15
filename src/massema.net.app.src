@@ -5,7 +5,6 @@
    [kernel,
     stdlib,
     cowboy,
-    markdown,
     mustasch,
     egeoip]},
   {mod, {mm_app, placeholder}}
