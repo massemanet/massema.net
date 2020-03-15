@@ -54,10 +54,11 @@ do_handle(Info, State) ->
 can_ship(Path, Info, #{root := Root}) ->
   try
     Safer = safe_relative_path(Path),
-    {ok, F} = file:read_file(filename:join(Root, Safer)),
+    Filename = filename:join(Root, Safer),
+    {ok, F} = file:read_file(Filename),
     case extension(Safer) of
       "html" -> {html, mustasch:run(F, Info)};
-      "md"   -> {html, markdown:conv(binary_to_list(F))};
+      "md"   -> {html, markdown_convert(Filename, F)};
       "txt"  -> {text, F};
       "js"   -> {js, F};
       "css"  -> {css, F};
@@ -66,6 +67,20 @@ can_ship(Path, Info, #{root := Root}) ->
     end
   catch
     _:R -> error_logger:error_report([{fail, R}, {path, Path}])
+  end.
+
+markdown_convert(Filename, MD) ->
+  case os:find_executable("pandoc") of
+    false -> MD;
+    Pandoc ->
+      P = erlang:open_port({spawn, Pandoc++" -t html -f markdown "++Filename}, []),
+      receive
+        {P, {data, HTML}} ->
+          HTML
+      after
+        2000 ->
+          MD
+      end
   end.
 
 a404(Meth, Path, QS) ->
