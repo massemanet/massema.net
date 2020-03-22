@@ -55,25 +55,33 @@ can_ship(Path, Info, #{root := Root}) ->
   try
     Safer = safe_relative_path(Path),
     Filename = filename:join(Root, Safer),
-    {ok, F} = file:read_file(Filename),
-    case extension(Safer) of
-      "html" -> {html, mustasch:run(F, Info)};
-      "md"   -> {html, markdown_convert(Filename, F)};
-      "txt"  -> {text, F};
-      "js"   -> {js, F};
-      "css"  -> {css, F};
-      "ico"  -> {ico, F};
-      E      -> error_logger:error_report([{error, E}, {path, Path}])
+    case file:read_file(Filename) of
+      {ok, F} ->
+        case extension(Safer) of
+          "html" -> {html, mustasch:run(F, Info)};
+          "md"   -> {html, markdown_convert(Filename, F)};
+          "txt"  -> {text, F};
+          "js"   -> {js, F};
+          "css"  -> {css, F};
+          "ico"  -> {ico, F};
+          E      -> error_logger:error_report([{error, E}, {path, Path}])
+        end;
+      {error, eisdir} ->
+        {ok, Fs} =  file:list_dir(Filename),
+        {html, lists:map(fun mklink/1, Fs)}
     end
   catch
     _:R -> error_logger:error_report([{fail, R}, {path, Path}])
   end.
 
+mklink(Filename) ->
+  ["<a href=", Filename, ">", Filename, "</a><p>"].
+
 markdown_convert(Filename, MD) ->
   case os:find_executable("pandoc") of
     false -> MD;
     Pandoc ->
-      P = erlang:open_port({spawn, Pandoc++" -t html -f markdown "++Filename}, []),
+      P = erlang:open_port({spawn, Pandoc++" -t html -f markdown-smart "++Filename}, []),
       receive
         {P, {data, HTML}} ->
           HTML
