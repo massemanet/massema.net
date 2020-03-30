@@ -63,19 +63,28 @@ can_ship(Path, Info, #{root := Root}) ->
           "txt"  -> {text, F};
           "js"   -> {js, F};
           "css"  -> {css, F};
+          "jpg"  -> {jpg, F};
+          "png"  -> {png, F};
           "ico"  -> {ico, F};
           E      -> error_logger:error_report([{error, E}, {path, Path}])
         end;
       {error, eisdir} ->
         {ok, Fs} =  file:list_dir(Filename),
-        {html, lists:map(fun mklink/1, Fs)}
+        Files = lists:sort(lists:filter(fun only_md/1, Fs)),
+        {html, lists:map(fun(F) -> mklink(Safer, F) end, Files)}
     end
   catch
     _:R -> error_logger:error_report([{fail, R}, {path, Path}])
   end.
 
-mklink(Filename) ->
-  ["<a href=", Filename, ">", Filename, "</a><p>"].
+only_md(F) ->
+  case lists:reverse(F) of
+    "dm."++_ -> true;
+    _ -> false
+  end.
+
+mklink(Dirname, Filename) ->
+  ["<a href=", Dirname, "/", Filename, ">", Filename, "</a><p>"].
 
 markdown_convert(Filename, MD) ->
   case os:find_executable("pandoc") of
@@ -103,6 +112,8 @@ content_type(text) -> [{<<"content-type">>, <<"text/plain">>}];
 content_type(html) -> [{<<"content-type">>, <<"text/html">>}];
 content_type(js)   -> [{<<"content-type">>, <<"application/javascript">>}];
 content_type(css)  -> [{<<"content-type">>, <<"text/css">>}];
+content_type(jpg)  -> [{<<"content-type">>, <<"image/jpeg">>}];
+content_type(png)  -> [{<<"content-type">>, <<"image/png">>}];
 content_type(ico)  -> [{<<"content-type">>, <<"image/png">>}].
 
 synched_ts() ->
