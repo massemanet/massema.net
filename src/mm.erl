@@ -95,7 +95,7 @@ markdown_convert(Filename, MD) ->
         {P, {data, HTML}} ->
           HTML
       after
-        2000 ->
+        8000 ->
           MD
       end
   end.
