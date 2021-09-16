@@ -1,8 +1,10 @@
 massema.net
 ===========
 
- my homepage
+my homepage
 
- This is actually an experiment in web programming; using nothing but erlang/OTP and html5.
- Obviously, that is not the way you would go about it if you were serious. E.g., you would 
-not use inets (the OTP web server), reimplement mustache, or write all the javascript from scratch.
+it contains nothing interesting. except maybe this handy tip;
+
+``` bash
+pandoc -V geometry:margin=3cm -o cv21.pdf cv.md 
+```

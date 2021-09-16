@@ -27,8 +27,8 @@ Skills
     Mostly forgotten: VMS, irix, solaris, hp-ux, ultrix.
     In daily use: linux (debian, centos), osx.
 ### Programming languages:
-    Mostly forgotten: BASIC, FORTRAN, pascal, various CERN languages.
-    Up to date: C, javascript, Julia.
+    Mostly forgotten: BASIC, FORTRAN, pascal, Julia, various CERN languages.
+    Up to date: C, javascript, SQL.
     In daily use: Erlang, bash.
 ### Version Control Systems:
     Mostly forgotten: cvs, clearcase, subversion.
@@ -36,15 +36,23 @@ Skills
 ### Architectural Belief System:
     Decoupling, Distribution, Asynchronous Message Passing.
 ### Always Installed:
-    emacs >= 24, docker.
+    emacs >= 25, docker.
 
 Experience
 ----------
 
-###  2017-present:
-Technical Director of 247.ai Sweden office. Managed ~15 developers.
-Architecture, mostly regarding AWS services; S3, SQS, Glue, Presto.
-Data analysis using Julia. 
+###  2018-present: Senior Developer at Working Group Two, Sweden. 
+Startup doing telephony in the public cloud. My main focus was designing and
+implementing a gateway between telecommunication protocols (mainly SS7 and
+DIAMETER) and cloud technologies (mainly GRPC and kafka). For redundancy and
+scalability, the system has a two-tiered, distributed, design, with a small part
+managing the external-facing sockets, backed by an arbitrary number of workers.
+Also created a system for indexing content of terabytes of packet captures
+(using wireshark, awk, and AWS Athena).
+
+###  2017-2018: Senior Technical Director of 247.ai, Sweden.
+Managed ~15 developers. Architecture, mostly regarding AWS services; S3, SQS,
+Glue, Presto. Data analysis using Julia.
 
 ###  2016-2017: Architect at Campanja, Sweden
 Developing and architecting in a Campanja's system, mainly Erlang.
