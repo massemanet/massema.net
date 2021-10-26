@@ -1,11 +1,14 @@
 #!/bin/bash
 
-DEST=deps/egeoip/priv
-if [ -d $DEST ] ; then
-    cd $DEST
-    wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
-    gunzip -f GeoLiteCity.dat.gz
-    invoke-rc.d massema.net reload-geodata
-else
-    echo "$DEST doesn't exist"
+DEST=priv/maxmind
+mkdir -p "$DEST"
+# shellcheck source=~/bin/pet
+. "$(command -v pet)" maxmind KEY
+if [ -n "$KEY" ]
+then for k in Country City ASN
+     do URL="https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-$k-CSV&license_key=$KEY&suffix=zip"
+        ZIP="/tmp/$$-$k.zip"
+        curl -o "$ZIP" "$URL"
+        unzip -d "$DEST" "$ZIP"
+     done
 fi

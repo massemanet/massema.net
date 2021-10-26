@@ -1,10 +1,14 @@
 .\#*
 \#*
 *~
+
 .DS_Store
+
 /_build/
+/priv/maxmind/
 /rebar.lock
-/src/mustasch_parser.erl
 /src/mustasch_lexer.erl
-rebar3.crashdump
+/src/mustasch_parser.erl
+
 erl_crash.dump
+rebar3.crashdump
