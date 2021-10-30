@@ -4,9 +4,9 @@
   {applications,
    [kernel,
     stdlib,
+    sasl,
     cowboy,
     mustasch,
-    redbug,
-    egeoip]},
+    redbug]},
   {mod, {mm_app, placeholder}}
  ]}.
