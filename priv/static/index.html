@@ -1,42 +1,64 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
   <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>massemanet</title>
+    <link rel="stylesheet" type="text/css" href="css.css">
   </head>
   <body>
-    <b>massemanet</b>
-    <ul>
-      <li>ex-nukeboy, not quite ex-hacker, music snob, all-around annoyingly awesome.
-        <ul>
-          <li>60's Little (void).
-          <li>70's Hick (BASIC).
-          <li>80's Intellectual (FORTRAN).
-          <li>90's Nukeboy (C).
-          <li>00's Telecom/finance drone (Erlang).
-          <li>10's Finance/adtech (Erlang).
-        </ul>
-      <li><tt><a href="cv.txt">cv</a></tt>
-    </ul>
-    <b>presence</b>
-    <ul>
-      <li><a href="https://github.com/massemanet">github</a>
-      <li><a href="http://massemanet.tumblr.com">tumblr</a>
-      <li><strike>twitter</strike>
-      <li><strike>g+</strike>
-      <li><strike>facebook</strike>
-    </ul>
-    <b>demos</b>
-    <ul>
-      <li><a href="animationFrame.html">animationFrame</a>
-      <li><a href="xhr.html">XMLhttpRequest</a>
-      <li><a href="sysinfo.html">sysinfo</a>
-    </ul>
-    <b>colophon</b>
-    <ul>
-      <li><b>HW</b> {{ ."uname -m".os:cmd }}
-      <li><b>SW</b> 
-      {{ ."uname -sr".os:cmd }}, 
-      Erlang {{ ."otp_release".erlang:list_to_atom.erlang:system_info }}
-    </ul>
+    <pre>
+{{ ."uname -orm".os:cmd }}
+{{ ."uptime".os:cmd }}
+<span class="prompt">$</span> pwd
+/home/massemanet
+<span class="prompt">$</span> cat praise
+ex-nukeboy, former ex-hacker, music snob, all-around annoyingly awesome.
+<span class="prompt">$</span> tree stuff
+stuff
+├── hacks
+│   ├── <a href="animationFrame.html">animationFrame</a>
+│   ├── <a href="xhr.html">XMLhttpRequest</a>
+│   └── <a href="sysinfo.html">sysinfo</a>
+└── links
+    ├── <a href="http://massemanet.tumblr.com">tumblr</a>
+    ├── <span class="dead"><strike>g+</strike></span>
+    ├── <span class="dead"><strike>twitter</strike></span>
+    ├── <a href="http://fb.com" class="link">fb</a>
+    └── <a href="http://github.com/massemanet" class="link">github</a>
+
+<span class="prompt">$</span> ls -1lrt story
+-rw-r--r-- 1 masse staff 0 Oct  9  1962 story/<span class="tooltip img">bcert.tiff<span class="tooltiptext">Oct 9th</span></span>
+-rw-r--r-- 1 masse staff 0 Feb 29  1968 story/<span class="tooltip img">shoots_kpist.tiff<span class="tooltiptext">my dad had one at home</span></span>
+-rw-r--r-- 1 masse staff 0 Apr 21  1969 story/<span class="tooltip img">falls_off_tractor.jpg<span class="tooltiptext">I was a terrible farm boy</span></span>
+-rw-r--r-- 1 masse staff 0 Jun 13  1970 story/<span class="tooltip doc">grades_year1.pdf<span class="tooltiptext">learnt to read</span></span>
+-rw-r--r-- 1 masse staff 0 Mar  8  1974 story/<span class="tooltip av">queen_ii.mp3<span class="tooltiptext">my first record</span></span>
+-rw-r--r-- 1 masse staff 0 Aug  6  1978 story/<span class="tooltip exe">halmstad.sh<span class="tooltiptext">moved to go to high school</span></span>
+-rw-r--r-- 1 masse staff 0 Nov 30  1979 story/<span class="tooltip av">the_wall.mp3<span class="tooltiptext">The Wall comes out</span></span>
+-rw-r--r-- 1 masse staff 0 Jan 27  1981 story/<span class="tooltip src">SUBHNT.BSC<span class="tooltiptext">wrote my first program</span></span>
+-rw-r--r-- 1 masse staff 0 Oct 12  1982 story/<span class="tooltip img">shoots_kpist.jpg<span class="tooltiptext">served in the Swedish Armed Forces, mainly by destroying the trucks the gave me</span></span>
+-rw-r--r-- 1 masse staff 0 Jul 22  1983 story/<span class="tooltip exe">göteborg.sh<span class="tooltiptext">moved to go to college</span></span>
+-rw-r--r-- 1 masse staff 0 Jul  3  1983 story/<span class="tooltip av">Allt_Står_I_Lågor.mp3<span class="tooltiptext">first club concert</span></span>
+-rw-r--r-- 1 masse staff 0 Dec 11  1985 story/<span class="tooltip exe">brighton.sh<span class="tooltiptext">six months at University of Sussex</span></span>
+-rw-r--r-- 1 masse staff 0 Jun 14  1986 story/<span class="tooltip src">matrix.f77<span class="tooltiptext">got paid to write code</span></span>
+-rw-r--r-- 1 masse staff 0 Aug 11  1989 story/<span class="tooltip exe">east_lansing.sh<span class="tooltiptext">moved to do experiments</span></span>
+-rw-r--r-- 1 masse staff 0 Oct 23  1989 story/<span class="tooltip src">4pi.f77<span class="tooltiptext">worked on the NSCL 4π detector</span></span>
+-rw-r--r-- 1 masse staff 0 Oct 22  1992 story/<span class="tooltip doc">thesis.fm<span class="tooltiptext">wrote my thesis (in framemaker)</span></span>
+-rw-r--r-- 1 masse staff 0 Dec 25  1992 story/<span class="tooltip exe">berkeley.sh<span class="tooltiptext">moved to work at the Space Sciences Lab</span></span>
+-rw-r--r-- 1 masse staff 0 Apr  1  1993 story/<span class="tooltip src">transport.f77<span class="tooltiptext">wrote FORTRAN for the NASA TRANSPORT collaboration</span></span>
+-rw-r--r-- 1 masse staff 0 May 12  1995 story/<span class="tooltip src">stubfinder.c<span class="tooltiptext">wrote track reconstruction code</span></span>
+-rw-r--r-- 1 masse staff 0 Mar 15  1995 story/<span class="tooltip av">kent.mp3<span class="tooltiptext">the only good reaon to learn Swedish</span></span>
+-rw-r--r-- 1 masse staff 0 Dec 14  1996 story/<span class="tooltip doc">e896.pdf<span class="tooltiptext">worked on the BNL E896 experiment</span></span>
+-rw-r--r-- 1 masse staff 0 Jul  7  1997 story/<span class="tooltip exe">stockholm.sh<span class="tooltiptext">moved to work for Ericsson</span></span>
+-rw-r--r-- 1 masse staff 0 Mar 12  1998 story/<span class="tooltip src">axd301.erl<span class="tooltiptext">programming telco equipment in erlang</span></span>
+-rw-r--r-- 1 masse staff 0 Feb 27  2001 story/<span class="tooltip av">blackwater_park.mp3<span class="tooltiptext">my first meeting with Opeth</span></span>
+-rw-r--r-- 1 masse staff 0 Jul 29  2003 story/<span class="tooltip exe">budapest.sh<span class="tooltiptext">moved to work for Ericsson Magyarország</span></span>
+-rw-r--r-- 1 masse staff 0 Aug 12  2004 story/<span class="tooltip src">redbug.erl<span class="tooltiptext">started on redbug</span></span>
+-rw-r--r-- 1 masse staff 0 Aug 29  2007 story/<span class="tooltip exe">stockholm.sh<span class="tooltiptext">moved to work for Klarna (then known as Kreditor)</span></span>
+-rw-r--r-- 1 masse staff 0 Nov  3  2007 story/<span class="tooltip src">kred.erl<span class="tooltiptext">wrote much fintech in erlang </span></span>
+-rw-r--r-- 1 masse staff 0 Aug 11  2016 story/<span class="tooltip src">gaw.jl<span class="tooltiptext">worked with Google AdWords, in erlang and julia</span></span>
+-rw-r--r-- 1 masse staff 0 Oct 29  2018 story/<span class="tooltip src">starlet.erl<span class="tooltiptext">programming virtual telco equipment in erlang</span></span>
+-rw-r--r-- 1 masse staff 0 Nov  4  2021 story/<span class="tooltip exe">london.sh<span class="tooltiptext">moved to work for fb</span></span>
+<span class="prompt">$</span> <span class="cursor">█</span>
+    </pre>
   </body>
 </html>

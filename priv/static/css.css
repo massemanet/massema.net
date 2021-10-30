@@ -1,0 +1,47 @@
+:root {
+    font-family: monospace;
+    font-size: 14px;
+    font-style: normal;
+    background-color: black;
+    color: lightgreen;}
+.prompt {
+    color: #11aa11;}
+.dir {
+    color: #dd44dd;}
+.src {
+    color: #7777ff;}
+.doc {
+    color: cyan;}
+.exe {
+    color: yellow;}
+.img {
+    color: cyan;}
+.av {
+    color: pink;}
+.dead {
+    color: red;
+    text-decoration: line-through;}
+a {
+    color: dodgerblue;
+    text-decoration: underline;}
+a:visited {
+    color: dodgerblue;}
+.tooltip {
+    position: relative;
+    display: inline-block;}
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 1;}
+.tooltip:hover .tooltiptext {
+    visibility: visible;}
+.cursor {
+    animation: blink 1s steps(3, start) infinite;}
+@keyframes blink {
+    to {visibility: hidden;}}

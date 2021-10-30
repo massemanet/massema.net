@@ -1,5 +1,10 @@
+<!DOCTYPE HTML>
 <html>
-  <title>massema.net</title>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>massemanet</title>
+    <link rel="stylesheet" type="text/css" href="css.css">
+  </head>
   <body>
     Node: <tt>{{ .erlang:node }}</tt><p>
     Module: <tt>{{ .erlang:self.erlang:process_info.current_function.1 }}</tt><p>
@@ -7,6 +12,6 @@
     User agent: <tt>{{ headers. <<"user-agent">> }}</tt><p>
     Client IP: <tt>{{ peer.1 }}</tt><p>
     You're in: <tt>{{ peer.1.egeoip:lookup.2.4 }}</tt><p>
-    uname: <tt>{{ ."uname -msr".os:cmd }}</tt>
+    uname: <tt>{{ ."uname -sorm".os:cmd }}</tt>
   </body>
 </html>
