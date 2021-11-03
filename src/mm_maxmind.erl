@@ -3,9 +3,20 @@
 
 -export([import/0]).
 
+maxmind_dir() ->
+    LIFT = fun({ok, X}) -> X end,
+    PRIV = code:priv_dir(LIFT(application:get_application(?MODULE))),
+    hd(lists:reverse(
+         lists:sort(
+           filelib:wildcard(
+             filename:join(
+               [PRIV, 'maxmind', '*']))))).
+
+maxmind_files() ->
+    filelib:wildcard(filename:join([maxmind_dir(), "**", "*{IPv4,en}.csv"])).
+
 import() ->
-    W = filename:join([code:priv_dir('massema.net'), 'maxmind', '**', "*{IPv4,en}.csv"]),
-    lists:map(mk_import_file(), filelib:wildcard(W)).
+    lists:map(mk_import_file(), maxmind_files()).
 
 mk_import_file() ->
     {ok, MP} = re:compile(atom_to_list(',|\n')),
@@ -29,7 +40,7 @@ zip([K|Ks], [V|Vs], O) -> zip(Ks, Vs, record(K, V, O)).
 
 record(K, V, O) ->
     case K of
-        <<"network">> -> O#{network => ip_to_int(V)};
+        <<"network">> -> O#{network => cidr_to_range(V)};
         <<"geoname_id">> -> O#{geoname_id => maybe_dq(V)};
         <<"continent_name">> -> O#{continent_name => maybe_dq(V)};
         <<"country_name">> -> O#{country_name => maybe_dq(V)};
@@ -39,7 +50,7 @@ record(K, V, O) ->
         _ -> O
     end.
 
-ip_to_int(CIDR) ->
+cidr_to_range(CIDR) ->
     [A, B, C, D, M] = lists:map(fun binary_to_integer/1, re:split(CIDR, "/|\\.")),
     <<I:M/bitstring, _/binary>> = <<A:8, B:8, C:8, D:8>>,
     I.
