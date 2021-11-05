@@ -14,10 +14,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% API
 
-lookup({A, B, C, D}) -> lookup([A, B, C, D]);
-lookup([A, B, C, D]) -> lookup(<<A:8, B:8, C:8, D:8>>);
-lookup(<<I:32>>) -> lookup(I);
-lookup(IP) when is_integer(IP) -> table_cmd({ip, IP}).
+lookup(IP) ->
+    try table_cmd({ip, reify_ip(IP)})
+    catch _:R -> error(#{not_ip => IP, error => R})
+    end.
 
 import() ->
     start_table_owner(),
@@ -232,6 +232,22 @@ ip_string2int(IP) ->
 %% <<"1.2.3.4">> -> [1,2,3,4]
 ip_string2ilist(IP) ->
     [binary_to_integer(B) || B <- binary:split(IP, <<".">>, [global])].
+
+
+%% reify various representations of an IPv4 to an integer.
+-define(IS_4TUPLE(X), tuple_size(X) == 4).
+-define(IS_4LIST(X), length(X) == 4).
+-define(IS_STRINGL(X), 7 =< length(X), length(X) =< 15, $0 =< hd(X), hd(X) =< $9).
+-define(IS_STRINGB(X), 7 =< byte_size(X), byte_size(X) =< 15).
+-define(IS_32BIT(X), bit_size(IP) == 32).
+-define(IS_INTEGER(X), 16#01000000 =< X, X =< 16#FFFFFFFF).
+
+reify_ip(IP) when ?IS_STRINGB(IP) -> reify_ip(binary_to_list(IP));
+reify_ip(IP) when ?IS_STRINGL(IP) -> reify_ip([list_to_integer(S) || S <- string:tokens(IP, ".")]);
+reify_ip(IP) when ?IS_4TUPLE(IP) -> reify_ip(tuple_to_list(IP));
+reify_ip(IP) when ?IS_4LIST(IP) -> reify_ip(<<<<I:8>> || I <- IP>>);
+reify_ip(IP) when ?IS_32BIT(IP) -> reify_ip(binary:decode_unsigned(IP));
+reify_ip(IP) when ?IS_INTEGER(IP) -> IP.
 
 %%ip_int2hex(I) ->
 %%    [if C<10 -> C+$0; true -> C+$W end || <<C:4>> <= <<I:32>>].
