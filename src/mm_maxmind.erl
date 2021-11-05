@@ -5,26 +5,46 @@
    [import/0,
     lookup/1]).
 
-lookup(IP) ->
-    table(ip, IP).
+-include_lib("kernel/include/logger.hrl").
+
+%% reloader
+-on_load(reloader/0).
+-export([table_loop/1]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% API
+
+lookup({A, B, C, D}) -> lookup([A, B, C, D]);
+lookup([A, B, C, D]) -> lookup(<<A:8, B:8, C:8, D:8>>);
+lookup(<<I:32>>) -> lookup(I);
+lookup(IP) when is_integer(IP) -> table_cmd({ip, IP}).
 
 import() ->
-    parallel(fun import_file/1, maxmind_files()).
+    start_table_owner(),
+    map_reduce(fun import_file/1, maxmind_files()).
+
+reloader() ->
+    erlang:send_after(100, ?MODULE, reload),
+    ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% run funs in prallel
-parallel(F, Es) ->
-    Workers = lists:map(fun(E) -> spawn_monitor(fun() -> F(E) end) end, Es),
-    wait_for_workers(Workers).
+%% map/reduce
 
-wait_for_workers([]) -> ok;
-wait_for_workers(Workers) ->
+map_reduce(F, Es) ->
+    reduce(lists:map(fun(E) -> spawn_monitor(fun() -> F(E) end) end, Es)).
+
+reduce([]) -> ok;
+reduce(Workers) ->
     receive
-        {'DOWN', Ref, process, Pid, normal} ->
-            wait_for_workers(Workers -- [{Pid, Ref}]);
+        {'DOWN', Ref, process, Pid, {ok, Info}} ->
+            ?LOG_INFO(#{imported => Info}),
+            reduce(Workers -- [{Pid, Ref}]);
         {'DOWN', Ref, process, Pid, Err} ->
-            error(#{worker_err => Err, worker => {Pid, Ref}, wporkers => Workers})
-        end.
+            error(#{worker_err => Err, worker => {Pid, Ref}, workers => Workers})
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% storage
 
 maxmind_dir() ->
     PRIV = code:priv_dir(lift(application:get_application(?MODULE))),
@@ -37,18 +57,19 @@ maxmind_dir() ->
 maxmind_files() ->
     filelib:wildcard(filename:join([maxmind_dir(), "**", "*{IPv4,en}.csv"])).
 
-import_file(File) ->
-    erlang:spawn_monitor(fun() -> import_file_worker(File) end).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the importer
 
-import_file_worker(File) ->
+import_file(File) ->
     FileId = file_id(File),
-    Table = table(create, FileId),
+    Table = table_cmd({create, FileId}),
     {ok, FD} = file:open(File, [read, raw, binary, read_ahead]),
     {ok, Headers} = file:read_line(FD),
     Ks = parse_line(Headers),
     Ctx = #{fd => FD, table => Table, keys => Ks, file_id => FileId},
     import_lines(Ctx),
-    table(reg, {FileId, Table}).
+    table_cmd({reg, {FileId, Table}}),
+    exit({ok, FileId}).
 
 import_lines(Ctx) ->
     import_line(Ctx, read_line(Ctx)).
@@ -67,7 +88,7 @@ read_line(#{fd := FD}) ->
 
 parse_line(Line) -> parse_line(nil, Line, value(), []).
 
-parse_line(nil, <<10:8>>, V, Vs) -> lists:reverse([V|Vs]);
+parse_line(nil, <<10:8>>, V, Vs) -> lists:reverse([value(V)|Vs]);
 parse_line(nil, <<$,:8, R/binary>>, V, Vs) -> parse_line(nil, R, value(), [value(V)|Vs]);
 parse_line(nil, <<$":8, R/binary>>, V, Vs) -> parse_line(quote, R, V, Vs);
 parse_line(quote, <<$":8, R/binary>>, V, Vs) -> parse_line(nil, R, V, Vs);
@@ -91,13 +112,14 @@ file_id(File) ->
     [_, A, _, B|_] = re:split(filename:basename(File), "-|\\."),
     binary_to_atom(<<A/binary, "/", B/binary>>).
 
+%% zip two lists to a map, with filtering
 zip([], [], O) -> O;
 zip([K|Ks], [V|Vs], O) -> zip(Ks, Vs, record(K, V, O)).
 
 record(K, V, O) ->
     case K of
-        <<"network">>                        -> O#{network => cidr_to_range(V)};
-        <<"autonomous_system_number">>       -> O#{as => safe(integer, V)};
+        <<"network">>                        -> O#{cidr => V, network => cidr_to_range(V)};
+        <<"autonomous_system_number">>       -> O#{asn => safe(integer, V)};
         <<"autonomous_system_organization">> -> O#{org => V};
         <<"geoname_id">>                     -> O#{geoname_id => V};
         <<"registered_country_geoname_id">>  -> O#{country_id => V};
@@ -117,83 +139,99 @@ record(K, V, O) ->
         _ -> O
     end.
 
-%% map <<"1.2.3.4/30">> to {16#01020304, 16#01020307}
-cidr_to_range(CIDR) ->
-    [IP, M] = binary:split(CIDR, <<"/">>),
-    <<I:32>> = <<<<I:8>> || I <- [binary_to_integer(B) || B <- binary:split(IP, <<".">>, [global])]>>,
-    Mask = 16#FFFFFFFF bsr binary_to_integer(M),
-    {I, I+(16#FFFFFFFF band Mask)}.
-
-safe(_, <<>>) -> undefined;
+%% handle unreliable input
+safe(_, <<>>)          -> undefined;
 safe(boolean, <<"0">>) -> false;
 safe(boolean, <<"1">>) -> true;
-safe(integer, B) -> binary_to_integer(B);
-safe(float, B) -> binary_to_float(B).
+safe(integer, B)       -> binary_to_integer(B);
+safe(float, B)         -> binary_to_float(B).
      
-%% table owner
-
-table(create, Name) ->
-    table_cmd({create, Name});
-table(destroy, Name) ->
-    table_cmd({destroy, Name});
-table(reg, {Name, Ref}) ->
-    table_cmd({reg, {Name, Ref}});
-table(ip, IP) ->
-    table_cmd({ip, IP}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% talk to the table owner
 
 table_cmd(Cmd) ->
-    Pid = assert_owner(),
-    Ref = erlang:monitor(process, Pid),
-    Pid ! {Cmd, self()},
+    ?MODULE ! {Cmd, self()},
     receive
-        {ok, R} -> erlang:demonitor(Ref), R;
+        {ok, R} -> R;
         Err -> error(Err)
     after
         1000 -> error({create_table_fail, timeout})
     end.
 
-assert_owner() ->
+start_table_owner() ->
     case whereis(?MODULE) of
-        undefined -> wait_for_owner();
+        undefined -> start_owner();
         Pid -> Pid
     end.
 
-wait_for_owner() ->
+start_owner() ->
     {Pid, Ref} = spawn_monitor(fun table_owner/0),
+    Pid ! {start, Ref, self()},
     receive
-        started -> erlang:demonitor(Ref), Pid;
+        {started, Ref} -> erlang:demonitor(Ref), Pid;
         Err -> error(Err)
     end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% table owner
 
 table_owner() ->
     register(?MODULE, self()),
     ets:new(?MODULE, [named_table]),
-    lists:foreach(fun(P) -> P ! started end, lift(process_info(self(), monitored_by))),
-    table_loop().
+    receive {start, Ref, From} -> From ! {started, Ref} end,
+    table_loop(#{}).
 
-table_loop() ->
+table_loop(S) ->
     receive
         quit -> ok;
-        What -> handle(What), table_loop()
+        reload -> ?MODULE:table_loop(S);
+        What -> table_loop(handle(What))
     end.
 
 handle({{reg, {Name, Ref}}, From}) ->
-    ets:insert(?MODULE, {Name, Ref}),
-    From ! {ok, ok};
+    From ! {ok, ets:insert(?MODULE, {Name, Ref})};
 handle({{ip, IP}, From}) ->
-    [{_, ASN}] = ets:lookup(?MODULE, 'ASN/IPv4'),
-    [{_, IPV4}] = ets:lookup(?MODULE, 'City/IPv4'),
-    [{_, EN}] = ets:lookup(?MODULE, 'City/en'),
-    KeyIP = ets:prev(IPV4, {IP, 0}),
-    KeyASN = ets:prev(ASN, {IP, 0}),
-    [{_, IPrec}] = ets:lookup(IPV4, KeyIP),
-    [{_, ASNrec}] = ets:lookup(ASN, KeyASN),
-    [{_, GEOrec}] = ets:lookup(EN, maps:get(geoname_id, IPrec)),
-    From ! {ok, maps:merge(GEOrec, maps:merge(IPrec, ASNrec))};
+    From ! {ok, maps:merge(lookup('ASN/IPv4', IP), get_geo(lookup('City/IPv4', IP)))};
 handle({{create, Name}, From}) ->
     From ! {ok, ets:new(Name, [ordered_set, public])};
 handle({{destroy, Name}, From}) ->
     From ! {ok, ets:delete(Name)}.
 
+lookup(Tab, IP) ->
+    [{_, Table}] = ets:lookup(?MODULE, Tab),
+    case ets:lookup(Table, ets:prev(Table, {IP+1, 0})) of
+        [{{IP0, IP1}, Val}] when IP0 =< IP, IP =< IP1 -> Val;
+        _ -> #{}
+    end.
+
+get_geo(IPrec) ->
+    [{_, Table}] = ets:lookup(?MODULE, 'City/en'),
+    case ets:lookup(Table, maps:get(geoname_id, IPrec, '')) of
+        [{_, GEOrec}] -> maps:merge(IPrec, GEOrec);
+        [] -> IPrec
+    end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% utils
+
+% lift all the things
 lift({error, X}) -> error(X);
 lift({_, R}) -> R.
+
+%% map <<"1.2.3.4/30">> to {16#01020304, 16#01020307}
+cidr_to_range(CIDR) ->
+    [IP, M] = binary:split(CIDR, <<"/">>),
+    I = ip_string2int(IP),
+    Mask = 16#FFFFFFFF bsr binary_to_integer(M),
+    {I, I+(16#FFFFFFFF band Mask)}.
+
+%% <<"1.1.1.1">> -> 16843009
+ip_string2int(IP) ->
+    binary:decode_unsigned(<<<<I:8>> || I <- ip_string2ilist(IP)>>).
+
+%% <<"1.2.3.4">> -> [1,2,3,4]
+ip_string2ilist(IP) ->
+    [binary_to_integer(B) || B <- binary:split(IP, <<".">>, [global])].
+
+%%ip_int2hex(I) ->
+%%    [if C<10 -> C+$0; true -> C+$W end || <<C:4>> <= <<I:32>>].
