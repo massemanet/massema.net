@@ -1,10 +1,14 @@
 REBAR = ./rebar3
 
+.PHONY: cv
 .PHONY: all compile test clean upgrade
 .PHONY: test eunit xref dialyze
 .PHONY: release release_minor release_major release_patch
 
 all: compile
+
+cv:
+	pandoc -V geometry:margin=3cm -o priv/static/cv.pdf priv/static/cv.md 
 
 compile:
 	@$(REBAR) compile
@@ -39,5 +43,3 @@ release_patch: test
 
 release: relase_patch
 
-publish:
-	@$(REBAR) hex publish

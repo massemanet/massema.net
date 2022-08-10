@@ -2,7 +2,7 @@ Curriculum Vitae
 ================
 
     Name: Mats Cronqvist
-    Phone (mobile): +46 72 7285755
+    Phone: +46 727285755
     E-mail: mats@cronqvi.st
     URL: http://massema.net
     Based in: Stockholm, Sweden (GMT +1)
@@ -27,11 +27,11 @@ Skills
     Mostly forgotten: VMS, irix, solaris, hp-ux, ultrix.
     In daily use: linux (debian, centos), osx.
 ### Programming languages:
-    Mostly forgotten: BASIC, FORTRAN, pascal, Julia, various CERN languages.
+    Mostly forgotten: BASIC, FORTRAN, pascal, Julia, PHP(hack), Java, various CERN languages.
     Up to date: C, javascript, SQL.
     In daily use: Erlang, bash.
 ### Version Control Systems:
-    Mostly forgotten: cvs, clearcase, subversion.
+    Mostly forgotten: cvs, clearcase, subversion, mercurial.
     In daily use: git.
 ### Architectural Belief System:
     Decoupling, Distribution, Asynchronous Message Passing.
@@ -41,7 +41,11 @@ Skills
 Experience
 ----------
 
-###  2018-present: Senior Developer at Working Group Two, Sweden. 
+###  2022: ES6 at facebook/meta, UK.
+Recruited to work with testing infrastructure. Unfortunately, I found
+the culture very demotivating. Quit after 8 months.
+
+###  2018-2021: Senior Developer at Working Group Two, Sweden. 
 Startup doing telephony in the public cloud. My main focus was designing and
 implementing a gateway between telecommunication protocols (mainly SS7 and
 DIAMETER) and cloud technologies (mainly GRPC and kafka). For redundancy and
