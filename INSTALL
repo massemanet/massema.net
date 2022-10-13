@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+sudo apt-get install -y \
+     erlang-nox erlang-doc erlang-dev erlang-dialyzer erlang-mode \
+     unzip
+
+curl -sL https://s3.amazonaws.com/rebar3/rebar3 > ~/bin/rebar3 && \
+    chmod +x ~/bin/rebar3
+
+rebar3 release
+
+bin/update_geodata.sh 
+
+## start web server
+# bin/massema.net daemon
+
+## reload egeoip data
+# bin/massema.net rpc egeoip reload

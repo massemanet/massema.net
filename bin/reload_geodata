@@ -1,9 +1,0 @@
-#!/usr/bin/env escript
-%% -*- erlang -*-
-
-main([Cookie,Sname]) ->
-  net_kernel:start(['tmplr',shortnames]),
-  {ok,Host} = inet:gethostname(),
-  Node = list_to_atom(Sname++"@"++Host),
-  erlang:set_cookie(Node,list_to_atom(Cookie)),
-  io:format("~p~n",[rpc:call(Node,egeoip,reload,[])]).

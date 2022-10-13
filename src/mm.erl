@@ -66,6 +66,7 @@ can_ship(Path, Info, #{root := Root}) ->
           "jpg"  -> {jpg, F};
           "png"  -> {png, F};
           "ico"  -> {ico, F};
+          "pdf"  -> {pdf, F};
           E      -> error_logger:error_report([{error, E}, {path, Path}])
         end;
       {error, eisdir} ->
@@ -110,8 +111,9 @@ ship(Status, State, ContentType, Body) ->
 
 content_type(text) -> [{<<"content-type">>, <<"text/plain">>}];
 content_type(html) -> [{<<"content-type">>, <<"text/html">>}];
-content_type(js)   -> [{<<"content-type">>, <<"application/javascript">>}];
 content_type(css)  -> [{<<"content-type">>, <<"text/css">>}];
+content_type(js)   -> [{<<"content-type">>, <<"application/javascript">>}];
+content_type(pdf)  -> [{<<"content-type">>, <<"application/pdf">>}];
 content_type(jpg)  -> [{<<"content-type">>, <<"image/jpeg">>}];
 content_type(png)  -> [{<<"content-type">>, <<"image/png">>}];
 content_type(ico)  -> [{<<"content-type">>, <<"image/png">>}].
