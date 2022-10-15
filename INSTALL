@@ -1,18 +1,43 @@
 #!/usr/bin/env bash
 
+# get deps
 sudo apt-get install -y \
      erlang-nox erlang-doc erlang-dev erlang-dialyzer erlang-mode \
+     nftables \
+     pandoc \
+     texlive-latex-recommended \
      unzip
 
-curl -sL https://s3.amazonaws.com/rebar3/rebar3 > ~/bin/rebar3 && \
-    chmod +x ~/bin/rebar3
+# get rebar3
+curl -sL https://s3.amazonaws.com/rebar3/rebar3 | \
+    sudo tee /usr/bin/rebar3 && \
+    sudo chmod +x /usr/bin/rebar3
 
-rebar3 release
+# link our unit file ...
+sudo ln -s "$HOME/git/massema.net/bin/massema.net.service" /lib/systemd/system
+#... and poke systemd...
+sudo systemctl daemon-reload 
+# ... and enable our service.
+sudo systemctl enable massema.net.service
 
-bin/update_geodata.sh 
+# enable the netfilter service
+## make a place to put our rule
+sudo mkdir /etc/nftables.d
+## put our rule there
+sudo cp /home/masse/git/massema.net/config/massema.net.nft /etc/nftables.d
+## The file `/etc/nftables.conf` should look like this;
+cat <<HERE
+flush ruleset
+include "/etc/nftables.d/*"
+HERE
+## enable the service
+sudo systemctl enable nftables.service
 
-## start web server
-# bin/massema.net daemon
+# create the service user
+sudo adduser luser --gecos "" --disabled-login
+sudo su - luser -c mkdir ~/massema.net
+# link the start script
+sudo ln -s /home/luser/massema.net/bin/massema.net /usr/bin
 
-## reload egeoip data
-# bin/massema.net rpc egeoip reload
+# NOTE!! to make things actually do something, you also need to follow
+# the instructions in `massema.net.sh`

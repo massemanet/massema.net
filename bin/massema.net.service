@@ -3,9 +3,10 @@ Description=massema.net
 After=network.target
 
 [Service]
-Environment=HOME=/root
-ExecStart=/home/masse/git/massema.net/_build/default/rel/massema.net/bin/massema.net foreground
-ExecStop=/home/masse/git/massema.net/_build/default/rel/massema.net/bin/massema.net stop
+User=luser
+ExecStart=/usr/bin/massema.net foreground
+ExecRestart=/usr/bin/massema.net reboot
+ExecStop=/usr/bin/massema.net stop
 Restart=on-failure
 
 [Install]

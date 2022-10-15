@@ -1,0 +1,6 @@
+table ip nat {
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		tcp dport 80 redirect to :8080
+	}
+}
